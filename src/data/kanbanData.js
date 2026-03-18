@@ -1,0 +1,145 @@
+// src/data/kanbanData.js
+
+export const priorityConfig = {
+  critica: { label: "Crítica", color: "bg-red-100 text-red-700", dot: "bg-red-500" },
+  alta: { label: "Alta", color: "bg-orange-100 text-orange-700", dot: "bg-orange-500" },
+  media: { label: "Média", color: "bg-amber-100 text-amber-700", dot: "bg-amber-500" },
+  baixa: { label: "Baixa", color: "bg-green-100 text-green-700", dot: "bg-green-500" },
+};
+
+export const initialColumns = {
+  backlog: {
+    id: "backlog",
+    title: "Backlog",
+    color: "#64748B",
+    tasks: [
+      {
+        id: "t1",
+        title: "Integração com Bitbucket",
+        desc: "Implementar OAuth e sincronização de repositórios com Bitbucket",
+        priority: "baixa",
+        assignee: "Leander",
+        tags: ["Integração", "API"],
+        dueDate: "28/03/2026",
+      },
+      {
+        id: "t2",
+        title: "Exportação de relatórios em CSV",
+        desc: "Permitir download de métricas e relatórios em formato CSV",
+        priority: "media",
+        assignee: "João Vitor",
+        tags: ["Relatórios"],
+        dueDate: "30/03/2026",
+      },
+    ],
+  },
+  afazer: {
+    id: "afazer",
+    title: "A Fazer",
+    color: "#2563EB",
+    tasks: [
+      {
+        id: "t3",
+        title: "Tela de configurações do usuário",
+        desc: "Permitir edição de perfil, tema e notificações",
+        priority: "media",
+        assignee: "Leander",
+        tags: ["UI", "Configurações"],
+        dueDate: "20/03/2026",
+      },
+      {
+        id: "t4",
+        title: "Filtro avançado no Kanban",
+        desc: "Filtrar tarefas por prioridade, responsável e tags",
+        priority: "alta",
+        assignee: "João Vitor",
+        tags: ["Kanban", "Filtros"],
+        dueDate: "19/03/2026",
+      },
+      {
+        id: "t5",
+        title: "Notificações por e-mail",
+        desc: "Enviar notificações quando tarefas são atribuídas ou vencem",
+        priority: "media",
+        assignee: "Leander",
+        tags: ["Notificações"],
+        dueDate: "22/03/2026",
+      },
+    ],
+  },
+  progresso: {
+    id: "progresso",
+    title: "Em Progresso",
+    color: "#F59E0B",
+    tasks: [
+      {
+        id: "t6",
+        title: "Sistema de autenticação RBAC",
+        desc: "Controle de acesso por papéis: dev, líder, QA, gerente",
+        priority: "critica",
+        assignee: "João Vitor",
+        tags: ["Auth", "RBAC"],
+        dueDate: "17/03/2026",
+      },
+      {
+        id: "t7",
+        title: "Dashboard de métricas da sprint",
+        desc: "Gráficos de burndown, velocity e distribuição de tarefas",
+        priority: "alta",
+        assignee: "Leander",
+        tags: ["Dashboard", "Recharts"],
+        dueDate: "18/03/2026",
+      },
+    ],
+  },
+  revisao: {
+    id: "revisao",
+    title: "Em Revisão",
+    color: "#8B5CF6",
+    tasks: [
+      {
+        id: "t8",
+        title: "Geração automática de documentação",
+        desc: "Gerar docs em HTML/PDF a partir de comentários do código",
+        priority: "alta",
+        assignee: "João Vitor",
+        tags: ["Documentação", "OpenAPI"],
+        dueDate: "16/03/2026",
+      },
+    ],
+  },
+  concluido: {
+    id: "concluido",
+    title: "Concluído",
+    color: "#16A34A",
+    tasks: [
+      {
+        id: "t9",
+        title: "Tela de login e registro",
+        desc: "Formulários de login, registro e recuperação de senha",
+        priority: "critica",
+        assignee: "Leander",
+        tags: ["Auth", "UI"],
+        dueDate: "10/03/2026",
+      },
+      {
+        id: "t10",
+        title: "Componente de tabela reutilizável",
+        desc: "Tabela com busca, filtros, ordenação e paginação",
+        priority: "alta",
+        assignee: "João Vitor",
+        tags: ["UI Components"],
+        dueDate: "12/03/2026",
+      },
+      {
+        id: "t11",
+        title: "Setup do projeto (Vite + Tailwind)",
+        desc: "Configuração inicial do projeto React com Vite e Tailwind CSS",
+        priority: "media",
+        assignee: "Leander",
+        tags: ["Setup"],
+        dueDate: "05/03/2026",
+      },
+    ],
+  },
+};
