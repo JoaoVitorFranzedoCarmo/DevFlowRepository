@@ -8,7 +8,7 @@ import ComponentesPage from "./components/ComponentesPage";
 import KanbanPage from "./components/KanbanPage";
 import PriorizacaoPage from "./components/PriorizacaoPage";
 import DocumentacaoPage from "./components/DocumentacaoPage";
-import PlaceholderPage from "./components/PlaceholderPage";
+import ConfigPage from "./components/ConfigPage";
 
 export default function App() {
   const [sidebarItem, setSidebarItem] = useState("componentes");
@@ -48,7 +48,7 @@ export default function App() {
           {sidebarItem === "kanban" && <KanbanPage />}
           {sidebarItem === "priorizacao" && <PriorizacaoPage />}
           {sidebarItem === "docs" && <DocumentacaoPage />}
-          {sidebarItem === "config" && <PlaceholderPage title="Configurações" />}
+          {sidebarItem === "config" && <ConfigPage />}
         </div>
       </div>
     </div>
