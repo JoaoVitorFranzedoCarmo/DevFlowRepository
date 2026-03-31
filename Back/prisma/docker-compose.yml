@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: devflow-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: devflow
+      POSTGRES_PASSWORD: devflow123
+      POSTGRES_DB: devflow_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - devflow_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devflow -d devflow_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: devflow-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      DATABASE_URL: postgresql://devflow:devflow123@db:5432/devflow_db?schema=public
+      JWT_SECRET: devflow-jwt-secret-change-in-production
+      JWT_EXPIRES_IN: 1h
+      JWT_REFRESH_SECRET: devflow-refresh-secret-change-in-production
+      JWT_REFRESH_EXPIRES_IN: 7d
+      CORS_ORIGIN: http://localhost:5173
+    ports:
+      - "3001:3001"
+
+volumes:
+  devflow_pgdata:

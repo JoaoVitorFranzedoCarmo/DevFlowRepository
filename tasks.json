@@ -1,0 +1,94 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🐳 Backend - Docker Up (Build + Run)",
+      "type": "shell",
+      "command": "cd Back\\prisma && docker compose up --build",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^.*$",
+          "line": 0
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Building.*",
+          "endsPattern": "^.*Server running on http://localhost:3001.*"
+        }
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "🌱 Backend - Database Seed",
+      "type": "shell",
+      "command": "cd Back\\prisma && docker compose exec api npm run prisma:seed",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "⚛️ Frontend - Install & Dev",
+      "type": "shell",
+      "command": "npm install && npm run dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^.*$",
+          "line": 0
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*vite.*",
+          "endsPattern": "^.*Local:.*http://localhost:5173.*"
+        }
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "🛑 Docker - Stop All",
+      "type": "shell",
+      "command": "cd Back\\prisma && docker compose down",
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "🧹 Docker - Clean & Reset",
+      "type": "shell",
+      "command": "cd Back\\prisma && docker compose down -v && echo Volumes removidos",
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "📊 Prisma - Studio (UI do BD)",
+      "type": "shell",
+      "command": "cd Back\\prisma && docker compose exec api npm run prisma:studio",
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      }
+    }
+  ]
+}

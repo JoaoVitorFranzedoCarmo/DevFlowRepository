@@ -1,0 +1,232 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  GERENTE
+  LIDER
+  DESENVOLVEDOR
+  QA
+}
+
+enum TaskStatus {
+  BACKLOG
+  AFAZER
+  PROGRESSO
+  REVISAO
+  CONCLUIDO
+}
+
+enum TaskPriority {
+  CRITICA
+  ALTA
+  MEDIA
+  BAIXA
+}
+
+enum DocType {
+  OPENAPI
+  TECNICA
+  MANUAL
+}
+
+enum DocFormat {
+  HTML
+  PDF
+  MARKDOWN
+}
+
+enum DocStatus {
+  ATUALIZADO
+  DESATUALIZADO
+  RASCUNHO
+}
+
+enum Quadrant {
+  FAZER
+  AGENDAR
+  DELEGAR
+  ELIMINAR
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(DESENVOLVEDOR)
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  components         Component[]
+  lessons            Lesson[]
+  assignedTasks      Task[]               @relation("TaskAssignee")
+  documents          Document[]
+  integrations       Integration[]
+  notificationSettings NotificationSetting[]
+  refreshTokens      RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+model Component {
+  id        String   @id @default(uuid())
+  name      String
+  desc      String
+  category  String
+  lang      String
+  tags      String[] @default([])
+  uses      Int      @default(0)
+  rating    Float    @default(0)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("components")
+}
+
+model Lesson {
+  id        String   @id @default(uuid())
+  title     String
+  project   String
+  desc      String
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("lessons")
+}
+
+model Task {
+  id          String       @id @default(uuid())
+  title       String
+  desc        String       @default("")
+  status      TaskStatus   @default(BACKLOG)
+  priority    TaskPriority @default(MEDIA)
+  tags        String[]     @default([])
+  dueDate     DateTime?
+  assigneeId  String?
+  assignee    User?        @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  prioritization TaskPrioritization?
+  dependedBy     TaskDependency[] @relation("DependencyTarget")
+  dependsOn      TaskDependency[] @relation("DependencySource")
+
+  @@map("tasks")
+}
+
+model TaskPrioritization {
+  id         String   @id @default(uuid())
+  taskId     String   @unique
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  urgency    Int      @default(1)
+  importance Int      @default(1)
+  value      Int      @default(1)
+  effort     Int      @default(1)
+  quadrant   Quadrant @default(AGENDAR)
+
+  @@map("task_prioritizations")
+}
+
+model TaskDependency {
+  id           String @id @default(uuid())
+  sourceTaskId String
+  targetTaskId String
+  sourceTask   Task   @relation("DependencySource", fields: [sourceTaskId], references: [id], onDelete: Cascade)
+  targetTask   Task   @relation("DependencyTarget", fields: [targetTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceTaskId, targetTaskId])
+  @@map("task_dependencies")
+}
+
+model Document {
+  id          String    @id @default(uuid())
+  title       String
+  type        DocType   @default(TECNICA)
+  format      DocFormat @default(HTML)
+  version     String    @default("v1.0.0")
+  codeVersion String    @default("")
+  status      DocStatus @default(RASCUNHO)
+  pages       Int       @default(0)
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  versions DocumentVersion[]
+
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id         String   @id @default(uuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  version    String
+  commit     String
+  changes    String
+  author     String
+  createdAt  DateTime @default(now())
+
+  @@map("document_versions")
+}
+
+model Template {
+  id        String   @id @default(uuid())
+  name      String
+  desc      String
+  icon      String   @default("code")
+  uses      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("templates")
+}
+
+model Integration {
+  id        String   @id @default(uuid())
+  name      String
+  desc      String
+  status    String   @default("desconectado")
+  icon      String   @default("")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, userId])
+  @@map("integrations")
+}
+
+model NotificationSetting {
+  id       String  @id @default(uuid())
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventKey String
+  email    Boolean @default(false)
+  push     Boolean @default(false)
+
+  @@unique([userId, eventKey])
+  @@map("notification_settings")
+}
