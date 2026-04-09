@@ -1,5 +1,5 @@
 import prisma from "../config/database";
-import { NotFoundError } from "../utils/errors";
+import { NotFoundError, ForbiddenError } from "../utils/errors";
 
 export class DocumentService {
   async findAll(filters?: { type?: string; status?: string; search?: string }) {
@@ -69,8 +69,9 @@ export class DocumentService {
     status: string;
     pages: number;
   }>) {
-    await this.findById(id);
+    const doc = await this.findById(id);
     const updateData: any = { ...data };
+    // If caller provided user info in data (not typical), enforce ownership at controller level.
     if (data.type) updateData.type = data.type;
     if (data.format) updateData.format = data.format;
     if (data.status) updateData.status = data.status;
@@ -95,8 +96,14 @@ export class DocumentService {
     commit: string;
     changes: string;
     author: string;
-  }) {
-    await this.findById(documentId);
+  }, user?: { userId: string; role: string }) {
+    const doc = await this.findById(documentId);
+    // Only author or GERENTE can add versions
+    if (user) {
+      if (doc.authorId !== user.userId && user.role !== "GERENTE") {
+        throw new ForbiddenError("Permissão negada para adicionar versão ao documento");
+      }
+    }
 
     const docVersion = await prisma.documentVersion.create({
       data: { documentId, ...data },

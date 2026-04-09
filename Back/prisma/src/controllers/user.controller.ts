@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { userService } from "../services/user.service";
+import { ForbiddenError } from "../utils/errors";
 
 export class UserController {
   async findAll(_req: Request, res: Response) {
@@ -13,7 +14,15 @@ export class UserController {
   }
 
   async update(req: Request, res: Response) {
-    const user = await userService.update(req.params.id, req.body);
+    const isOwn = req.params.id === req.user!.userId;
+    const isGerente = req.user!.role === "GERENTE";
+    if (!isOwn && !isGerente) {
+      throw new ForbiddenError("Permissão negada para atualizar este usuário");
+    }
+    // Não-gerentes não podem alterar seu próprio role
+    const data = { ...req.body };
+    if (!isGerente) delete data.role;
+    const user = await userService.update(req.params.id, data);
     res.json(user);
   }
 

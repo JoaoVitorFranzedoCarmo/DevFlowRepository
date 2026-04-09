@@ -1,6 +1,8 @@
 // src/App.jsx
-
 import { useState } from "react";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import DashboardPage from "./components/DashboardPage";
@@ -10,11 +12,27 @@ import PriorizacaoPage from "./components/PriorizacaoPage";
 import DocumentacaoPage from "./components/DocumentacaoPage";
 import ConfigPage from "./components/ConfigPage";
 
-export default function App() {
-  const [sidebarItem, setSidebarItem] = useState("componentes");
+function AppInner() {
+  const { user, loading } = useAuth();
+  const [authView, setAuthView] = useState("login"); // "login" | "register"
+  const [sidebarItem, setSidebarItem] = useState("dashboard");
   const [subItem, setSubItem] = useState("biblioteca");
-  const [compExpanded, setCompExpanded] = useState(true);
+  const [compExpanded, setCompExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState("biblioteca");
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+        <div className="text-slate-400 text-sm">Carregando...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return authView === "login"
+      ? <LoginPage onGoRegister={() => setAuthView("register")} />
+      : <RegisterPage onGoLogin={() => setAuthView("login")} />;
+  }
 
   function handleSubItemChange(key) {
     setSubItem(key);
@@ -52,5 +70,13 @@ export default function App() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   );
 }

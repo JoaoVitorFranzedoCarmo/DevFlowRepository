@@ -18,12 +18,18 @@ export class TemplateController {
   }
 
   async update(req: Request, res: Response) {
-    const template = await templateService.update(req.params.id, req.body);
+    const template = await templateService.update(req.params.id, req.body, {
+      userId: req.user!.userId,
+      role: req.user!.role,
+    });
     res.json(template);
   }
 
   async delete(req: Request, res: Response) {
-    await templateService.delete(req.params.id);
+    await templateService.delete(req.params.id, {
+      userId: req.user!.userId,
+      role: req.user!.role,
+    });
     res.status(204).send();
   }
 

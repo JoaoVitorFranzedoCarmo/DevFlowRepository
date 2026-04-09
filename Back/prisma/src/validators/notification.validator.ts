@@ -7,5 +7,8 @@ export const upsertNotificationSchema = z.object({
 });
 
 export const bulkNotificationSchema = z.object({
-  settings: z.array(upsertNotificationSchema).min(1, "Pelo menos uma configuração é necessária"),
+  settings: z
+    .array(upsertNotificationSchema)
+    .min(1, "Pelo menos uma configuração é necessária")
+    .max(100, "Máximo de 100 configurações por requisição"),
 });

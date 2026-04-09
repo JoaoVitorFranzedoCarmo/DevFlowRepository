@@ -31,3 +31,8 @@ export const taskPrioritizationSchema = z.object({
 export const taskDependencySchema = z.object({
   targetTaskId: z.string().uuid("ID da tarefa dependência inválido"),
 });
+
+export const moveTaskSchema = z.object({
+  status: z.enum(["BACKLOG", "AFAZER", "PROGRESSO", "REVISAO", "CONCLUIDO"]),
+});
+

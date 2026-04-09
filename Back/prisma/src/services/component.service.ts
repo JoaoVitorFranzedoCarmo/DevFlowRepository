@@ -1,5 +1,5 @@
 import prisma from "../config/database";
-import { NotFoundError } from "../utils/errors";
+import { NotFoundError, ForbiddenError } from "../utils/errors";
 
 export class ComponentService {
   async findAll(filters?: { category?: string; lang?: string; search?: string }) {
@@ -68,8 +68,16 @@ export class ComponentService {
     tags: string[];
     uses: number;
     rating: number;
-  }>) {
-    await this.findById(id);
+  }>, user?: { userId: string; role: string }) {
+    const component = await this.findById(id);
+
+    // Authorization: only author or GERENTE can update
+    if (user) {
+      if (component.authorId !== user.userId && user.role !== "GERENTE") {
+        throw new ForbiddenError("Permissão negada para atualizar componente");
+      }
+    }
+
     return prisma.component.update({
       where: { id },
       data,
@@ -81,8 +89,16 @@ export class ComponentService {
     });
   }
 
-  async delete(id: string) {
-    await this.findById(id);
+  async delete(id: string, user?: { userId: string; role: string }) {
+    const component = await this.findById(id);
+
+    // Authorization: only author or GERENTE can delete
+    if (user) {
+      if (component.authorId !== user.userId && user.role !== "GERENTE") {
+        throw new ForbiddenError("Permissão negada para deletar componente");
+      }
+    }
+
     await prisma.component.delete({ where: { id } });
   }
 

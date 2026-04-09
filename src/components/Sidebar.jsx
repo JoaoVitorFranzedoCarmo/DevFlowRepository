@@ -1,5 +1,5 @@
 // src/components/Sidebar.jsx
-
+import { useAuth } from "../context/AuthContext";
 import {
   DashboardIcon,
   DocsIcon,
@@ -11,6 +11,13 @@ import {
   LicoesIcon,
   ChevronIcon,
 } from "../icons/SidebarIcons";
+
+const roleLabel = {
+  GERENTE: "Gerente de Projeto",
+  LIDER: "Líder Técnico",
+  DESENVOLVEDOR: "Desenvolvedor",
+  QA: "QA / Analista",
+};
 
 const menuItems = [
   { key: "dashboard", label: "Dashboard", icon: DashboardIcon },
@@ -37,6 +44,12 @@ export default function Sidebar({
   compExpanded,
   setCompExpanded,
 }) {
+  const { user, logout } = useAuth();
+
+  const initials = user?.name
+    ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    : "?";
+
   function handleClick(item) {
     if (item.expandable) {
       if (sidebarItem === "componentes") {
@@ -122,10 +135,7 @@ export default function Sidebar({
 
         {/* Configurações */}
         <div
-          onClick={() => {
-            setSidebarItem("config");
-            setCompExpanded(false);
-          }}
+          onClick={() => { setSidebarItem("config"); setCompExpanded(false); }}
           className={`flex items-center gap-2.5 px-5 py-2.5 cursor-pointer text-[13px] transition-all border-l-[3px] ${
             isActive("config")
               ? "bg-white/[0.08] text-white font-medium border-blue-500"
@@ -137,15 +147,28 @@ export default function Sidebar({
         </div>
       </nav>
 
-      {/* User */}
-      <div className="px-5 py-4 border-t border-white/[0.08] flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold">
-          JV
+      {/* User + Logout */}
+      <div className="px-5 py-4 border-t border-white/[0.08]">
+        <div className="flex items-center gap-2.5 mb-2">
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">
+            {initials}
+          </div>
+          <div className="min-w-0">
+            <div className="text-white text-[13px] font-medium truncate">{user?.name || "Usuário"}</div>
+            <div className="text-white/35 text-[11px]">{roleLabel[user?.role] || user?.role}</div>
+          </div>
         </div>
-        <div>
-          <div className="text-white text-[13px] font-medium">João Vitor</div>
-          <div className="text-white/35 text-[11px]">Gerente de Projeto</div>
-        </div>
+        <button
+          onClick={logout}
+          className="w-full text-left text-white/40 text-[11px] hover:text-white/70 transition-colors flex items-center gap-1.5 mt-1"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Sair
+        </button>
       </div>
     </div>
   );

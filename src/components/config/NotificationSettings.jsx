@@ -1,7 +1,15 @@
 // src/components/config/NotificationSettings.jsx
+import { useState, useEffect, useCallback } from "react";
+import api from "../../services/api";
 
-import { useState } from "react";
-import { notificationSettings as initialSettings } from "../../data/configData";
+const DEFAULT_SETTINGS = [
+  { eventKey: "task_assigned",  label: "Tarefa atribuída a mim",   email: true,  push: true },
+  { eventKey: "task_due",       label: "Tarefa próxima do prazo",   email: true,  push: false },
+  { eventKey: "sprint_start",   label: "Início de sprint",          email: false, push: true },
+  { eventKey: "sprint_end",     label: "Fim de sprint",             email: true,  push: true },
+  { eventKey: "doc_updated",    label: "Documentação atualizada",   email: false, push: false },
+  { eventKey: "component_new",  label: "Novo componente adicionado",email: false, push: true },
+];
 
 function Toggle({ enabled, onToggle }) {
   return (
@@ -15,18 +23,46 @@ function Toggle({ enabled, onToggle }) {
 }
 
 export default function NotificationSettings() {
-  const [settings, setSettings] = useState(initialSettings);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const fetchSettings = useCallback(async () => {
+    try {
+      const { data } = await api.get("/notifications");
+      if (data.length > 0) {
+        // Mescla dados da API com labels padrão
+        setSettings(DEFAULT_SETTINGS.map((def) => {
+          const fromApi = data.find((d) => d.eventKey === def.eventKey);
+          return fromApi ? { ...def, email: fromApi.email, push: fromApi.push } : def;
+        }));
+      }
+    } catch (err) {
+      console.error("Erro ao carregar notificações:", err);
+    }
+  }, []);
+
+  useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
   function toggleSetting(index, channel) {
-    setSettings((prev) =>
-      prev.map((s, i) => (i === index ? { ...s, [channel]: !s[channel] } : s))
-    );
+    setSettings((prev) => prev.map((s, i) => (i === index ? { ...s, [channel]: !s[channel] } : s)));
   }
 
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  async function handleSave() {
+    setError("");
+    setLoading(true);
+    try {
+      await api.put("/notifications/bulk", {
+        settings: settings.map(({ eventKey, email, push }) => ({ eventKey, email, push })),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError(err.response?.data?.error || "Erro ao salvar preferências.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -36,16 +72,14 @@ export default function NotificationSettings() {
         <p className="text-[11px] text-slate-400 mt-0.5">Escolha como e quando deseja ser notificado</p>
       </div>
 
-      {/* Header */}
       <div className="grid grid-cols-[1fr_80px_80px] gap-3 px-3 py-2 text-[11px] text-slate-400 font-medium border-b border-slate-100">
         <span>Evento</span>
         <span className="text-center">E-mail</span>
         <span className="text-center">Push</span>
       </div>
 
-      {/* Rows */}
       {settings.map((s, i) => (
-        <div key={s.key} className="grid grid-cols-[1fr_80px_80px] gap-3 px-3 py-3 items-center border-b border-slate-50 last:border-0">
+        <div key={s.eventKey} className="grid grid-cols-[1fr_80px_80px] gap-3 px-3 py-3 items-center border-b border-slate-50 last:border-0">
           <span className="text-[13px] text-[#1B2A4A]">{s.label}</span>
           <div className="flex justify-center">
             <Toggle enabled={s.email} onToggle={() => toggleSetting(i, "email")} />
@@ -56,12 +90,17 @@ export default function NotificationSettings() {
         </div>
       ))}
 
+      {error && (
+        <div className="mt-3 bg-red-50 border border-red-200 rounded-md px-3 py-2 text-sm text-red-600">{error}</div>
+      )}
+
       <div className="flex items-center gap-3 mt-5">
         <button
           onClick={handleSave}
-          className="px-5 py-2 bg-blue-600 text-white rounded-md text-[13px] font-semibold hover:bg-blue-700 transition-colors"
+          disabled={loading}
+          className="px-5 py-2 bg-blue-600 text-white rounded-md text-[13px] font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
         >
-          Salvar Preferências
+          {loading ? "Salvando..." : "Salvar Preferências"}
         </button>
         {saved && (
           <span className="text-[12px] text-green-600 font-medium flex items-center gap-1">

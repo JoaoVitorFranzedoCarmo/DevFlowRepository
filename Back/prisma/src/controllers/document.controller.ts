@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { documentService } from "../services/document.service";
+import { ForbiddenError } from "../utils/errors";
 
 export class DocumentController {
   async findAll(req: Request, res: Response) {
@@ -26,17 +27,34 @@ export class DocumentController {
   }
 
   async update(req: Request, res: Response) {
+    const existing = await documentService.findById(req.params.id);
+    if (existing.authorId !== req.user!.userId && req.user!.role !== "GERENTE") {
+      throw new ForbiddenError("Permissão negada para atualizar documento");
+    }
     const doc = await documentService.update(req.params.id, req.body);
     res.json(doc);
   }
 
   async delete(req: Request, res: Response) {
+    const existing = await documentService.findById(req.params.id);
+    if (existing.authorId !== req.user!.userId && req.user!.role !== "GERENTE") {
+      throw new ForbiddenError("Permissão negada para deletar documento");
+    }
     await documentService.delete(req.params.id);
     res.status(204).send();
   }
 
   async addVersion(req: Request, res: Response) {
-    const version = await documentService.addVersion(req.params.id, req.body);
+    // Ensure author is the current user unless explicitly allowed
+    const payload = { ...req.body } as any;
+    if (!payload.author) payload.author = req.user!.name;
+
+    const existing = await documentService.findById(req.params.id);
+    if (existing.authorId !== req.user!.userId && req.user!.role !== "GERENTE") {
+      throw new ForbiddenError("Permissão negada para adicionar versão ao documento");
+    }
+
+    const version = await documentService.addVersion(req.params.id, payload, { userId: req.user!.userId, role: req.user!.role });
     res.status(201).json(version);
   }
 

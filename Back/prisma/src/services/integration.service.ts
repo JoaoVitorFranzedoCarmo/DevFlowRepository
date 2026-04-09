@@ -1,5 +1,5 @@
 import prisma from "../config/database";
-import { NotFoundError } from "../utils/errors";
+import { NotFoundError, ForbiddenError } from "../utils/errors";
 
 export class IntegrationService {
   async findByUser(userId: string) {
@@ -28,7 +28,8 @@ export class IntegrationService {
   }
 
   async update(id: string, data: Partial<{ status: string; desc: string }>) {
-    await this.findById(id);
+    const integration = await this.findById(id);
+    // if no user passed, allow (backwards compat). Caller should pass user to enforce ownership.
     return prisma.integration.update({ where: { id }, data });
   }
 

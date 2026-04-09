@@ -1,64 +1,150 @@
 // src/components/KanbanPage.jsx
-
-import { useState, useMemo } from "react";
-import { initialColumns } from "../data/kanbanData";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import api from "../services/api";
 import KanbanHeader from "./kanban/KanbanHeader";
 import KanbanColumn from "./kanban/KanbanColumn";
+import NewTaskModal from "./kanban/NewTaskModal";
+import { priorityConfig } from "../data/kanbanData";
+
+const STATUS_TO_COL = {
+  BACKLOG: "backlog",
+  AFAZER: "afazer",
+  PROGRESSO: "progresso",
+  REVISAO: "revisao",
+  CONCLUIDO: "concluido",
+};
+
+const COL_TO_STATUS = {
+  backlog: "BACKLOG",
+  afazer: "AFAZER",
+  progresso: "PROGRESSO",
+  revisao: "REVISAO",
+  concluido: "CONCLUIDO",
+};
+
+const PRIORITY_DOWN = { CRITICA: "critica", ALTA: "alta", MEDIA: "media", BAIXA: "baixa" };
+
+const columnMeta = {
+  backlog:   { id: "backlog",   title: "Backlog",       color: "#64748B" },
+  afazer:    { id: "afazer",    title: "A Fazer",        color: "#2563EB" },
+  progresso: { id: "progresso", title: "Em Progresso",   color: "#F59E0B" },
+  revisao:   { id: "revisao",   title: "Em Revisão",     color: "#8B5CF6" },
+  concluido: { id: "concluido", title: "Concluído",      color: "#16A34A" },
+};
+
+function buildColumns(tasks) {
+  const cols = {};
+  Object.keys(columnMeta).forEach((k) => { cols[k] = { ...columnMeta[k], tasks: [] }; });
+  tasks.forEach((t) => {
+    const col = STATUS_TO_COL[t.status] || "backlog";
+    cols[col].tasks.push({
+      id: t.id,
+      title: t.title,
+      desc: t.desc || "",
+      priority: PRIORITY_DOWN[t.priority] || "media",
+      assignee: t.assignee?.name || "—",
+      tags: t.tags || [],
+      dueDate: t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "—",
+    });
+  });
+  return cols;
+}
+
+const columnOrder = ["backlog", "afazer", "progresso", "revisao", "concluido"];
 
 export default function KanbanPage() {
-  const [columns, setColumns] = useState(initialColumns);
+  const [columns, setColumns] = useState(() => {
+    const cols = {};
+    Object.keys(columnMeta).forEach((k) => { cols[k] = { ...columnMeta[k], tasks: [] }; });
+    return cols;
+  });
+  const [loading, setLoading] = useState(true);
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [search, setSearch] = useState("");
   const [filterPriority, setFilterPriority] = useState("todas");
   const [filterAssignee, setFilterAssignee] = useState("todos");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalStatus, setModalStatus] = useState("BACKLOG");
+  const [saving, setSaving] = useState(false);
 
-  // Find which column a task belongs to
+  const fetchTasks = useCallback(async () => {
+    try {
+      const { data } = await api.get("/tasks");
+      setColumns(buildColumns(data));
+    } catch (err) {
+      console.error("Erro ao carregar tarefas:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchTasks(); }, [fetchTasks]);
+
   function findColumnByTask(taskId) {
     return Object.keys(columns).find((colId) =>
       columns[colId].tasks.some((t) => t.id === taskId)
     );
   }
 
-  // Drag start handler
   function handleDragStart(e, taskId) {
     setDraggedTaskId(taskId);
     e.dataTransfer.effectAllowed = "move";
   }
 
-  // Drop handler - move task between columns
-  function handleDrop(e, targetColId) {
+  async function handleDrop(e, targetColId) {
     e.preventDefault();
     if (!draggedTaskId) return;
-
     const sourceColId = findColumnByTask(draggedTaskId);
-    if (!sourceColId || sourceColId === targetColId) {
-      setDraggedTaskId(null);
-      return;
-    }
+    if (!sourceColId || sourceColId === targetColId) { setDraggedTaskId(null); return; }
 
+    // Atualiza UI imediatamente (optimistic)
     setColumns((prev) => {
       const newCols = JSON.parse(JSON.stringify(prev));
-      const sourceCol = newCols[sourceColId];
-      const targetCol = newCols[targetColId];
-
-      // Find and remove task from source
-      const taskIndex = sourceCol.tasks.findIndex((t) => t.id === draggedTaskId);
-      if (taskIndex === -1) return prev;
-      const [task] = sourceCol.tasks.splice(taskIndex, 1);
-
-      // Add to target
-      targetCol.tasks.push(task);
-
+      const taskIdx = newCols[sourceColId].tasks.findIndex((t) => t.id === draggedTaskId);
+      if (taskIdx === -1) return prev;
+      const [task] = newCols[sourceColId].tasks.splice(taskIdx, 1);
+      newCols[targetColId].tasks.push(task);
       return newCols;
     });
-
     setDraggedTaskId(null);
+
+    // Persiste no backend
+    try {
+      await api.patch(`/tasks/${draggedTaskId}/move`, { status: COL_TO_STATUS[targetColId] });
+    } catch {
+      fetchTasks(); // Reverte em caso de erro
+    }
   }
 
-  // Apply filters to columns
+  async function handleCreateTask(data) {
+    setSaving(true);
+    try {
+      await api.post("/tasks", data);
+      setModalOpen(false);
+      await fetchTasks();
+    } catch (err) {
+      console.error("Erro ao criar tarefa:", err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteTask(taskId) {
+    try {
+      await api.delete(`/tasks/${taskId}`);
+      await fetchTasks();
+    } catch (err) {
+      console.error("Erro ao deletar tarefa:", err);
+    }
+  }
+
+  function openNewTaskModal(colId) {
+    setModalStatus(COL_TO_STATUS[colId] || "BACKLOG");
+    setModalOpen(true);
+  }
+
   const filteredColumns = useMemo(() => {
     const result = {};
-
     Object.keys(columns).forEach((colId) => {
       const col = columns[colId];
       const filteredTasks = col.tasks.filter((task) => {
@@ -66,26 +152,20 @@ export default function KanbanPage() {
           search === "" ||
           task.title.toLowerCase().includes(search.toLowerCase()) ||
           task.desc.toLowerCase().includes(search.toLowerCase());
-        const matchPriority =
-          filterPriority === "todas" || task.priority === filterPriority;
-        const matchAssignee =
-          filterAssignee === "todos" || task.assignee === filterAssignee;
+        const matchPriority = filterPriority === "todas" || task.priority === filterPriority;
+        const matchAssignee = filterAssignee === "todos" || task.assignee === filterAssignee;
         return matchSearch && matchPriority && matchAssignee;
       });
-
       result[colId] = { ...col, tasks: filteredTasks };
     });
-
     return result;
   }, [columns, search, filterPriority, filterAssignee]);
 
-  // Count totals
-  const totalTasks = Object.values(columns).reduce(
-    (sum, col) => sum + col.tasks.length,
-    0
-  );
+  const totalTasks = Object.values(columns).reduce((sum, col) => sum + col.tasks.length, 0);
 
-  const columnOrder = ["backlog", "afazer", "progresso", "revisao", "concluido"];
+  if (loading) {
+    return <div className="flex items-center justify-center py-20 text-slate-400 text-sm">Carregando tarefas...</div>;
+  }
 
   return (
     <>
@@ -96,24 +176,20 @@ export default function KanbanPage() {
         setFilterPriority={setFilterPriority}
         filterAssignee={filterAssignee}
         setFilterAssignee={setFilterAssignee}
+        onNewTask={() => { setModalStatus("BACKLOG"); setModalOpen(true); }}
       />
 
-      {/* Task count summary */}
       <div className="flex items-center gap-4 mb-4 text-xs text-slate-400">
         <span>{totalTasks} tarefas no total</span>
         <span className="w-px h-3 bg-slate-200" />
         {columnOrder.map((colId) => (
           <span key={colId} className="flex items-center gap-1">
-            <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: columns[colId].color }}
-            />
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: columns[colId].color }} />
             {columns[colId].title}: {columns[colId].tasks.length}
           </span>
         ))}
       </div>
 
-      {/* Kanban board - horizontal scroll */}
       <div className="flex gap-4 overflow-x-auto pb-4">
         {columnOrder.map((colId) => (
           <KanbanColumn
@@ -121,9 +197,20 @@ export default function KanbanPage() {
             column={filteredColumns[colId]}
             onDragStart={handleDragStart}
             onDrop={handleDrop}
+            onNewTask={() => openNewTaskModal(colId)}
+            onDeleteTask={handleDeleteTask}
           />
         ))}
       </div>
+
+      {modalOpen && (
+        <NewTaskModal
+          initialStatus={modalStatus}
+          onConfirm={handleCreateTask}
+          onClose={() => setModalOpen(false)}
+          loading={saving}
+        />
+      )}
     </>
   );
 }

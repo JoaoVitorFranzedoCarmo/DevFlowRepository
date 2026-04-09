@@ -1,43 +1,30 @@
 // src/components/kanban/KanbanColumn.jsx
-
 import { useState } from "react";
 import KanbanCard from "./KanbanCard";
 
-export default function KanbanColumn({ column, onDragStart, onDrop }) {
+export default function KanbanColumn({ column, onDragStart, onDrop, onNewTask, onDeleteTask }) {
   const [isDragOver, setIsDragOver] = useState(false);
 
-  function handleDragOver(e) {
-    e.preventDefault();
-    setIsDragOver(true);
-  }
-
-  function handleDragLeave() {
-    setIsDragOver(false);
-  }
-
-  function handleDrop(e) {
-    e.preventDefault();
-    setIsDragOver(false);
-    onDrop(e, column.id);
-  }
+  function handleDragOver(e) { e.preventDefault(); setIsDragOver(true); }
+  function handleDragLeave() { setIsDragOver(false); }
+  function handleDrop(e) { e.preventDefault(); setIsDragOver(false); onDrop(e, column.id); }
 
   return (
     <div className="flex flex-col w-72 shrink-0">
       {/* Column header */}
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
-          <div
-            className="w-2.5 h-2.5 rounded-full"
-            style={{ backgroundColor: column.color }}
-          />
-          <span className="text-[13px] font-semibold text-[#1B2A4A]">
-            {column.title}
-          </span>
+          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: column.color }} />
+          <span className="text-[13px] font-semibold text-[#1B2A4A]">{column.title}</span>
           <span className="bg-slate-100 text-slate-500 text-[11px] font-medium px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
             {column.tasks.length}
           </span>
         </div>
-        <button className="text-slate-400 hover:text-slate-600 transition-colors p-0.5">
+        <button
+          onClick={onNewTask}
+          title="Nova tarefa"
+          className="text-slate-400 hover:text-blue-600 transition-colors p-0.5"
+        >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
@@ -57,21 +44,24 @@ export default function KanbanColumn({ column, onDragStart, onDrop }) {
         }`}
       >
         {column.tasks.map((task) => (
-          <KanbanCard
-            key={task.id}
-            task={task}
-            onDragStart={onDragStart}
-          />
+          <KanbanCard key={task.id} task={task} onDragStart={onDragStart} onDelete={onDeleteTask} />
         ))}
 
-        {/* Empty state */}
         {column.tasks.length === 0 && !isDragOver && (
-          <div className="flex-1 flex items-center justify-center text-slate-300 text-xs py-8">
-            Arraste tarefas para cá
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-300 text-xs py-8 gap-2">
+            <span>Arraste tarefas para cá</span>
+            <button
+              onClick={onNewTask}
+              className="text-blue-400 hover:text-blue-600 transition-colors text-[11px] flex items-center gap-1"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Nova tarefa
+            </button>
           </div>
         )}
 
-        {/* Drop indicator */}
         {isDragOver && (
           <div className="border-2 border-dashed border-blue-300 rounded-lg py-6 flex items-center justify-center text-blue-400 text-xs">
             Soltar aqui

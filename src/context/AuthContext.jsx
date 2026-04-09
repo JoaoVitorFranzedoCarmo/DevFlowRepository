@@ -1,0 +1,65 @@
+// src/context/AuthContext.jsx
+import { createContext, useContext, useState, useEffect } from "react";
+import api from "../services/api";
+
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Ao iniciar, verifica se há token salvo
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) { setLoading(false); return; }
+    api.get("/auth/me")
+      .then(({ data }) => setUser(data))
+      .catch(() => {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function login(email, password) {
+    const { data } = await api.post("/auth/login", { email, password });
+    localStorage.setItem("accessToken", data.accessToken);
+    localStorage.setItem("refreshToken", data.refreshToken);
+    setUser(data.user);
+    return data.user;
+  }
+
+  async function register(name, email, password, role) {
+    const { data } = await api.post("/auth/register", { name, email, password, role });
+    localStorage.setItem("accessToken", data.accessToken);
+    localStorage.setItem("refreshToken", data.refreshToken);
+    setUser(data.user);
+    return data.user;
+  }
+
+  async function logout() {
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (refreshToken) {
+      try { await api.post("/auth/logout", { refreshToken }); } catch {}
+    }
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    setUser(null);
+  }
+
+  async function updateUser(updated) {
+    setUser(updated);
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth deve ser usado dentro de AuthProvider");
+  return ctx;
+}

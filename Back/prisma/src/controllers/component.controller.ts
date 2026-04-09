@@ -26,12 +26,12 @@ export class ComponentController {
   }
 
   async update(req: Request, res: Response) {
-    const component = await componentService.update(req.params.id, req.body);
+    const component = await componentService.update(req.params.id, req.body, { userId: req.user!.userId, role: req.user!.role });
     res.json(component);
   }
 
   async delete(req: Request, res: Response) {
-    await componentService.delete(req.params.id);
+    await componentService.delete(req.params.id, { userId: req.user!.userId, role: req.user!.role });
     res.status(204).send();
   }
 

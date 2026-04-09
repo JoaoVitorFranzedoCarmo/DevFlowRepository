@@ -7,6 +7,7 @@ import {
   updateTaskSchema,
   taskPrioritizationSchema,
   taskDependencySchema,
+  moveTaskSchema,
 } from "../validators/task.validator";
 import { asyncHandler } from "../utils/asyncHandler";
 
@@ -31,7 +32,7 @@ router.put("/:id", validate(updateTaskSchema), asyncHandler((req, res) => taskCo
 router.delete("/:id", asyncHandler((req, res) => taskController.delete(req, res)));
 
 // Move task (Kanban drag & drop)
-router.patch("/:id/move", asyncHandler((req, res) => taskController.moveTask(req, res)));
+router.patch("/:id/move", validate(moveTaskSchema), asyncHandler((req, res) => taskController.moveTask(req, res)));
 
 // Prioritization
 router.put("/:id/prioritization", validate(taskPrioritizationSchema), asyncHandler((req, res) => taskController.setPrioritization(req, res)));
