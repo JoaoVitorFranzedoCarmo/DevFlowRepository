@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { documentService } from "../services/document.service";
 import { ForbiddenError } from "../utils/errors";
+import  prisma  from "../config/database";
 
 export class DocumentController {
   async findAll(req: Request, res: Response) {
@@ -44,20 +45,25 @@ export class DocumentController {
     res.status(204).send();
   }
 
-  async addVersion(req: Request, res: Response) {
-    // Ensure author is the current user unless explicitly allowed
-    const payload = { ...req.body } as any;
-    if (!payload.author) payload.author = req.user!.name;
+    async addVersion(req: Request, res: Response) {
+        const payload = { ...req.body } as any;
 
-    const existing = await documentService.findById(req.params.id);
-    if (existing.authorId !== req.user!.userId && req.user!.role !== "GERENTE") {
-      throw new ForbiddenError("Permissão negada para adicionar versão ao documento");
+        if (!payload.author) {
+            const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+            payload.author = user?.name ?? req.user!.userId;
+        }
+
+        const existing = await documentService.findById(req.params.id);
+        if (existing.authorId !== req.user!.userId && req.user!.role !== "GERENTE") {
+            throw new ForbiddenError("Permissão negada para adicionar versão ao documento");
+        }
+
+        const version = await documentService.addVersion(req.params.id, payload, {
+            userId: req.user!.userId,
+            role: req.user!.role,
+        });
+        res.status(201).json(version);
     }
-
-    const version = await documentService.addVersion(req.params.id, payload, { userId: req.user!.userId, role: req.user!.role });
-    res.status(201).json(version);
-  }
-
   async getVersionHistory(_req: Request, res: Response) {
     const history = await documentService.getVersionHistory();
     res.json(history);
