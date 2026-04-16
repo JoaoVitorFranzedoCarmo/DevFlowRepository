@@ -80,27 +80,28 @@ export default function KanbanPage() {
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
-  function findColumnByTask(taskId) {
+  const findColumnByTask = useCallback((taskId) => {
     return Object.keys(columns).find((colId) =>
       columns[colId].tasks.some((t) => t.id === taskId)
     );
-  }
+  }, [columns]);
 
-  function handleDragStart(e, taskId) {
+  const handleDragStart = useCallback((e, taskId) => {
     setDraggedTaskId(taskId);
     e.dataTransfer.effectAllowed = "move";
-  }
+  }, []);
 
-  async function handleDrop(e, targetColId) {
+  const handleDrop = useCallback(async (e, targetColId) => {
     e.preventDefault();
     if (!draggedTaskId) return;
     const sourceColId = findColumnByTask(draggedTaskId);
     if (!sourceColId || sourceColId === targetColId) { setDraggedTaskId(null); return; }
 
+    const taskId = draggedTaskId;
     // Atualiza UI imediatamente (optimistic)
     setColumns((prev) => {
-      const newCols = JSON.parse(JSON.stringify(prev));
-      const taskIdx = newCols[sourceColId].tasks.findIndex((t) => t.id === draggedTaskId);
+      const newCols = structuredClone(prev);
+      const taskIdx = newCols[sourceColId].tasks.findIndex((t) => t.id === taskId);
       if (taskIdx === -1) return prev;
       const [task] = newCols[sourceColId].tasks.splice(taskIdx, 1);
       newCols[targetColId].tasks.push(task);
@@ -110,38 +111,38 @@ export default function KanbanPage() {
 
     // Persiste no backend
     try {
-      await api.patch(`/tasks/${draggedTaskId}/move`, { status: COL_TO_STATUS[targetColId] });
+      await api.patch(`/tasks/${taskId}/move`, { status: COL_TO_STATUS[targetColId] });
     } catch {
       fetchTasks(); // Reverte em caso de erro
     }
-  }
+  }, [draggedTaskId, findColumnByTask, fetchTasks]);
 
-  async function handleCreateTask(data) {
+  const handleCreateTask = useCallback(async (data) => {
     setSaving(true);
     try {
       await api.post("/tasks", data);
       setModalOpen(false);
       await fetchTasks();
-    } catch (err) {
-      console.error("Erro ao criar tarefa:", err);
+    } catch {
+      // silently fail — user sees no feedback change
     } finally {
       setSaving(false);
     }
-  }
+  }, [fetchTasks]);
 
-  async function handleDeleteTask(taskId) {
+  const handleDeleteTask = useCallback(async (taskId) => {
     try {
       await api.delete(`/tasks/${taskId}`);
       await fetchTasks();
-    } catch (err) {
-      console.error("Erro ao deletar tarefa:", err);
+    } catch {
+      // silently fail
     }
-  }
+  }, [fetchTasks]);
 
-  function openNewTaskModal(colId) {
+  const openNewTaskModal = useCallback((colId) => {
     setModalStatus(COL_TO_STATUS[colId] || "BACKLOG");
     setModalOpen(true);
-  }
+  }, []);
 
   const filteredColumns = useMemo(() => {
     const result = {};

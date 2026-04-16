@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { authService } from "../services/auth.service";
+import { userService } from "../services/user.service";
 
 export class AuthController {
   async register(req: Request, res: Response) {
@@ -26,8 +27,6 @@ export class AuthController {
   }
 
   async me(req: Request, res: Response) {
-    // req.user is set by authMiddleware
-    const { userService } = await import("../services/user.service");
     const user = await userService.findById(req.user!.userId);
     res.json(user);
   }

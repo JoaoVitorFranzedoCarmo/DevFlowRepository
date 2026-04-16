@@ -1,13 +1,13 @@
 // src/components/kanban/KanbanColumn.jsx
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import KanbanCard from "./KanbanCard";
 
-export default function KanbanColumn({ column, onDragStart, onDrop, onNewTask, onDeleteTask }) {
+const KanbanColumn = memo(function KanbanColumn({ column, onDragStart, onDrop, onNewTask, onDeleteTask }) {
   const [isDragOver, setIsDragOver] = useState(false);
 
-  function handleDragOver(e) { e.preventDefault(); setIsDragOver(true); }
-  function handleDragLeave() { setIsDragOver(false); }
-  function handleDrop(e) { e.preventDefault(); setIsDragOver(false); onDrop(e, column.id); }
+  const handleDragOver = useCallback((e) => { e.preventDefault(); setIsDragOver(true); }, []);
+  const handleDragLeave = useCallback(() => { setIsDragOver(false); }, []);
+  const handleDrop = useCallback((e) => { e.preventDefault(); setIsDragOver(false); onDrop(e, column.id); }, [onDrop, column.id]);
 
   return (
     <div className="flex flex-col w-72 shrink-0">
@@ -70,4 +70,6 @@ export default function KanbanColumn({ column, onDragStart, onDrop, onNewTask, o
       </div>
     </div>
   );
-}
+});
+
+export default KanbanColumn;

@@ -1,9 +1,7 @@
 // src/components/kanban/KanbanCard.jsx
-import { useState } from "react";
 import { priorityConfig } from "../../data/kanbanData";
 
 export default function KanbanCard({ task, onDragStart, onDelete }) {
-  const [hovered, setHovered] = useState(false);
   const priority = priorityConfig[task.priority] || priorityConfig.media;
   const initials = task.assignee && task.assignee !== "—"
     ? task.assignee.split(" ").map((n) => n[0]).join("").slice(0, 2)
@@ -13,15 +11,13 @@ export default function KanbanCard({ task, onDragStart, onDelete }) {
     <div
       draggable
       onDragStart={(e) => onDragStart(e, task.id)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       className="bg-white rounded-lg border border-slate-200 p-3.5 cursor-grab active:cursor-grabbing hover:border-blue-300 hover:shadow-sm transition-all group relative"
     >
       {/* Delete button */}
-      {hovered && onDelete && (
+      {onDelete && (
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
-          className="absolute top-2 right-2 p-1 rounded hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors"
+          className="absolute top-2 right-2 p-1 rounded hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
           title="Excluir tarefa"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

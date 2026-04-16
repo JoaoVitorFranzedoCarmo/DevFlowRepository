@@ -1,5 +1,5 @@
 // src/context/AuthContext.jsx
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import api from "../services/api";
 
 const AuthContext = createContext(null);
@@ -21,23 +21,23 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function login(email, password) {
+  const login = useCallback(async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
     localStorage.setItem("accessToken", data.accessToken);
     localStorage.setItem("refreshToken", data.refreshToken);
     setUser(data.user);
     return data.user;
-  }
+  }, []);
 
-  async function register(name, email, password, role) {
+  const register = useCallback(async (name, email, password, role) => {
     const { data } = await api.post("/auth/register", { name, email, password, role });
     localStorage.setItem("accessToken", data.accessToken);
     localStorage.setItem("refreshToken", data.refreshToken);
     setUser(data.user);
     return data.user;
-  }
+  }, []);
 
-  async function logout() {
+  const logout = useCallback(async () => {
     const refreshToken = localStorage.getItem("refreshToken");
     if (refreshToken) {
       try { await api.post("/auth/logout", { refreshToken }); } catch {}
@@ -45,11 +45,11 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     setUser(null);
-  }
+  }, []);
 
-  async function updateUser(updated) {
+  const updateUser = useCallback((updated) => {
     setUser(updated);
-  }
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>

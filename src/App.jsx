@@ -1,16 +1,17 @@
 // src/App.jsx
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
-import DashboardPage from "./components/DashboardPage";
-import ComponentesPage from "./components/ComponentesPage";
-import KanbanPage from "./components/KanbanPage";
-import PriorizacaoPage from "./components/PriorizacaoPage";
-import DocumentacaoPage from "./components/DocumentacaoPage";
-import ConfigPage from "./components/ConfigPage";
+
+const DashboardPage    = lazy(() => import("./components/DashboardPage"));
+const ComponentesPage  = lazy(() => import("./components/ComponentesPage"));
+const KanbanPage       = lazy(() => import("./components/KanbanPage"));
+const PriorizacaoPage  = lazy(() => import("./components/PriorizacaoPage"));
+const DocumentacaoPage = lazy(() => import("./components/DocumentacaoPage"));
+const ConfigPage       = lazy(() => import("./components/ConfigPage"));
 
 function AppInner() {
   const { user, loading } = useAuth();
@@ -55,18 +56,20 @@ function AppInner() {
         <Topbar sidebarItem={sidebarItem} subItem={subItem} />
 
         <div className="flex-1 overflow-auto p-8">
-          {sidebarItem === "dashboard" && <DashboardPage />}
-          {sidebarItem === "componentes" && (
-            <ComponentesPage
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              setSubItem={setSubItem}
-            />
-          )}
-          {sidebarItem === "kanban" && <KanbanPage />}
-          {sidebarItem === "priorizacao" && <PriorizacaoPage />}
-          {sidebarItem === "docs" && <DocumentacaoPage />}
-          {sidebarItem === "config" && <ConfigPage />}
+          <Suspense fallback={<div className="flex items-center justify-center py-20 text-slate-400 text-sm">Carregando...</div>}>
+            {sidebarItem === "dashboard" && <DashboardPage />}
+            {sidebarItem === "componentes" && (
+              <ComponentesPage
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                setSubItem={setSubItem}
+              />
+            )}
+            {sidebarItem === "kanban" && <KanbanPage />}
+            {sidebarItem === "priorizacao" && <PriorizacaoPage />}
+            {sidebarItem === "docs" && <DocumentacaoPage />}
+            {sidebarItem === "config" && <ConfigPage />}
+          </Suspense>
         </div>
       </div>
     </div>

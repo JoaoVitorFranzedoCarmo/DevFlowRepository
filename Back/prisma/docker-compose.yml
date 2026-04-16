@@ -13,6 +13,14 @@ services:
       - "5432:5432"
     volumes:
       - devflow_pgdata:/var/lib/postgresql/data
+    # Memory limits: max 512MB, reservation 256MB
+    # Use deploy.resources to request limits (Compose V3). Note: some local compose setups ignore "deploy".
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U devflow -d devflow_db"]
       interval: 5s
@@ -35,8 +43,17 @@ services:
       JWT_REFRESH_SECRET: devflow-refresh-secret-change-in-production
       JWT_REFRESH_EXPIRES_IN: 7d
       CORS_ORIGIN: http://localhost:5173
+      SEED_DB: "${SEED_DB:-false}"
     ports:
       - "3001:3001"
+    # Memory limits: max 512MB, reservation 128MB
+    # Use deploy.resources to request limits (Compose V3). Note: some local compose setups ignore "deploy".
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
 
 volumes:
   devflow_pgdata:

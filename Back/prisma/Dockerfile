@@ -20,10 +20,15 @@ RUN npx prisma generate
 COPY . .
 
 # Build TypeScript
+# Limit Node.js heap to 256MB to prevent excessive memory use inside container
+ENV NODE_OPTIONS="--max-old-space-size=256"
 RUN npm run build
+
+# Copy entrypoint
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x entrypoint.sh
 
 # Expose port
 EXPOSE 3001
 
-# Start command
-CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
+ENTRYPOINT ["./entrypoint.sh"]
