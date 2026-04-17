@@ -29,4 +29,7 @@ router.delete("/:id", asyncHandler((req, res) => documentController.delete(req, 
 // Document versions
 router.post("/:id/versions", validate(createDocVersionSchema), asyncHandler((req, res) => documentController.addVersion(req, res)));
 
+// Strategy: geração de conteúdo — GET /documents/:id/content?format=HTML|PDF
+router.get("/:id/content", asyncHandler((req, res) => documentController.generateContent(req, res)));
+
 export default router;

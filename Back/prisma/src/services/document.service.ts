@@ -1,7 +1,20 @@
 import prisma from "../config/database";
 import { NotFoundError, ForbiddenError } from "../utils/errors";
+import {
+  DocumentGenerationStrategy,
+  HtmlGenerationStrategy,
+  PdfGenerationStrategy,
+} from "../strategies/document-generation.strategy";
 
 export class DocumentService {
+  constructor(
+    private generationStrategy: DocumentGenerationStrategy = new HtmlGenerationStrategy()
+  ) {}
+
+  setGenerationStrategy(strategy: DocumentGenerationStrategy): void {
+    this.generationStrategy = strategy;
+  }
+
   async findAll(filters?: { type?: string; status?: string; search?: string }) {
     const where: any = {};
     if (filters?.type && filters.type !== "todos") where.type = filters.type.toUpperCase();
@@ -69,9 +82,8 @@ export class DocumentService {
     status: string;
     pages: number;
   }>) {
-    const doc = await this.findById(id);
+    await this.findById(id);
     const updateData: any = { ...data };
-    // If caller provided user info in data (not typical), enforce ownership at controller level.
     if (data.type) updateData.type = data.type;
     if (data.format) updateData.format = data.format;
     if (data.status) updateData.status = data.status;
@@ -98,7 +110,6 @@ export class DocumentService {
     author: string;
   }, user?: { userId: string; role: string }) {
     const doc = await this.findById(documentId);
-    // Only author or GERENTE can add versions
     if (user) {
       if (doc.authorId !== user.userId && user.role !== "GERENTE") {
         throw new ForbiddenError("Permissão negada para adicionar versão ao documento");
@@ -109,7 +120,6 @@ export class DocumentService {
       data: { documentId, ...data },
     });
 
-    // Update document version
     await prisma.document.update({
       where: { id: documentId },
       data: { version: data.version, codeVersion: data.commit },
@@ -144,6 +154,24 @@ export class DocumentService {
       totalPages: totalPages._sum.pages || 0,
       templates,
     };
+  }
+
+  // Strategy: seleciona a estratégia de geração de conteúdo com base no formato do documento
+  async generateContent(id: string, formatOverride?: string): Promise<string> {
+    const doc = await this.findById(id);
+
+    const targetFormat = (formatOverride ?? doc.format).toUpperCase();
+    const strategy: DocumentGenerationStrategy =
+      targetFormat === "PDF" ? new PdfGenerationStrategy() : new HtmlGenerationStrategy();
+
+    return strategy.generate({
+      title: doc.title,
+      type: doc.type,
+      version: doc.version,
+      status: doc.status,
+      author: doc.author?.name,
+      createdAt: doc.createdAt,
+    });
   }
 }
 

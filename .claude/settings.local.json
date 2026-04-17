@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Skill(update-config)",
+      "Bash(mkdir -p \"C:/Users/joaov/.claude/plugins/cache/ux-ui-mastery-marketplace/ux-ui-mastery/local\")",
+      "Bash(cp -r \"C:/Users/joaov/OneDrive/Documentos/pluginsClaude/ux-ui-mastery/.\" \"C:/Users/joaov/.claude/plugins/cache/ux-ui-mastery-marketplace/ux-ui-mastery/local/\")"
+    ]
+  }
+}

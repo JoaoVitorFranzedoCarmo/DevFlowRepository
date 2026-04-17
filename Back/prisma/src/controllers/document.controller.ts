@@ -73,6 +73,13 @@ export class DocumentController {
     const stats = await documentService.getStats();
     res.json(stats);
   }
+
+  // Strategy: gera conteúdo do documento usando a estratégia adequada (HTML ou PDF)
+  async generateContent(req: Request, res: Response) {
+    const { format } = req.query;
+    const content = await documentService.generateContent(req.params.id, format as string | undefined);
+    res.type("text/plain").send(content);
+  }
 }
 
 export const documentController = new DocumentController();

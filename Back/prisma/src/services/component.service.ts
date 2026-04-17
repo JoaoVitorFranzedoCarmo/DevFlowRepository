@@ -1,9 +1,11 @@
-import prisma from "../config/database";
 import { NotFoundError, ForbiddenError } from "../utils/errors";
+import { ComponentRepository, componentRepository } from "../repositories/component.repository";
 
 export class ComponentService {
+  constructor(private repo: ComponentRepository = componentRepository) {}
+
   async findAll(filters?: { category?: string; lang?: string; search?: string }) {
-    const where: any = {};
+    const where: Record<string, unknown> = {};
 
     if (filters?.category && filters.category !== "Todos") {
       where.category = filters.category;
@@ -18,26 +20,11 @@ export class ComponentService {
       ];
     }
 
-    return prisma.component.findMany({
-      where,
-      include: {
-        author: {
-          select: { id: true, name: true, avatar: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    return this.repo.findMany(where);
   }
 
   async findById(id: string) {
-    const component = await prisma.component.findUnique({
-      where: { id },
-      include: {
-        author: {
-          select: { id: true, name: true, avatar: true },
-        },
-      },
-    });
+    const component = await this.repo.findUnique(id);
     if (!component) throw new NotFoundError("Componente");
     return component;
   }
@@ -50,14 +37,7 @@ export class ComponentService {
     tags?: string[];
     authorId: string;
   }) {
-    return prisma.component.create({
-      data,
-      include: {
-        author: {
-          select: { id: true, name: true, avatar: true },
-        },
-      },
-    });
+    return this.repo.create(data);
   }
 
   async update(id: string, data: Partial<{
@@ -71,44 +51,31 @@ export class ComponentService {
   }>, user?: { userId: string; role: string }) {
     const component = await this.findById(id);
 
-    // Authorization: only author or GERENTE can update
     if (user) {
       if (component.authorId !== user.userId && user.role !== "GERENTE") {
         throw new ForbiddenError("Permissão negada para atualizar componente");
       }
     }
 
-    return prisma.component.update({
-      where: { id },
-      data,
-      include: {
-        author: {
-          select: { id: true, name: true, avatar: true },
-        },
-      },
-    });
+    return this.repo.update(id, data as Record<string, unknown>);
   }
 
   async delete(id: string, user?: { userId: string; role: string }) {
     const component = await this.findById(id);
 
-    // Authorization: only author or GERENTE can delete
     if (user) {
       if (component.authorId !== user.userId && user.role !== "GERENTE") {
         throw new ForbiddenError("Permissão negada para deletar componente");
       }
     }
 
-    await prisma.component.delete({ where: { id } });
+    await this.repo.delete(id);
   }
 
   async getStats() {
-    const total = await prisma.component.count();
-    const totalUses = await prisma.component.aggregate({ _sum: { uses: true } });
-    const categories = await prisma.component.groupBy({
-      by: ["category"],
-      _count: true,
-    });
+    const total = await this.repo.count();
+    const totalUses = await this.repo.aggregateUses();
+    const categories = await this.repo.groupByCategory();
     return {
       total,
       totalUses: totalUses._sum.uses || 0,
