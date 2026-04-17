@@ -8,19 +8,20 @@ export default function KanbanCard({ task, onDragStart, onDelete }) {
     : "?";
 
   return (
-    <div
+    <article
       draggable
       onDragStart={(e) => onDragStart(e, task.id)}
-      className="bg-white rounded-lg border border-slate-200 p-3.5 cursor-grab active:cursor-grabbing hover:border-blue-300 hover:shadow-sm transition-all group relative"
+      aria-label={`Tarefa: ${task.title}, prioridade ${priority.label}, responsável ${task.assignee}`}
+      className="bg-white rounded-lg border border-slate-200 p-3.5 cursor-grab active:cursor-grabbing hover:border-blue-300 hover:shadow-sm hover:-translate-y-px transition-all duration-150 group relative"
     >
       {/* Delete button */}
       {onDelete && (
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
-          className="absolute top-2 right-2 p-1 rounded hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-          title="Excluir tarefa"
+          aria-label={`Excluir tarefa: ${task.title}`}
+          className="absolute top-2 right-2 p-1 rounded hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
             <polyline points="3 6 5 6 21 6" />
             <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
             <path d="M10 11v6" /><path d="M14 11v6" />
@@ -31,8 +32,11 @@ export default function KanbanCard({ task, onDragStart, onDelete }) {
 
       {/* Priority + Tags */}
       <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold ${priority.color}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${priority.dot}`} />
+        <span
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold ${priority.color}`}
+          aria-label={`Prioridade ${priority.label}`}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${priority.dot}`} aria-hidden="true" />
           {priority.label}
         </span>
         {task.tags.map((tag) => (
@@ -41,33 +45,40 @@ export default function KanbanCard({ task, onDragStart, onDelete }) {
       </div>
 
       {/* Title */}
-      <div className="text-[13px] font-semibold text-[#1B2A4A] mb-1 leading-snug pr-4">{task.title}</div>
+      <h3 className="text-[13px] font-semibold text-[#1B2A4A] mb-1 leading-snug pr-4">{task.title}</h3>
 
       {/* Description */}
       {task.desc && (
-        <div className="text-[11px] text-slate-400 leading-relaxed mb-3 line-clamp-2">{task.desc}</div>
+        <p className="text-[11px] text-slate-400 leading-relaxed mb-3 line-clamp-2">{task.desc}</p>
       )}
 
       {/* Footer */}
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center gap-1.5">
-          <div className="w-5 h-5 rounded-full bg-[#1B2A4A] text-white flex items-center justify-center text-[8px] font-semibold">
+          <div
+            className="w-5 h-5 rounded-full bg-[#1B2A4A] text-white flex items-center justify-center text-[8px] font-semibold"
+            aria-hidden="true"
+          >
             {initials}
           </div>
           <span className="text-[11px] text-slate-400">{task.assignee}</span>
         </div>
         {task.dueDate && task.dueDate !== "—" && (
-          <span className="text-[11px] text-slate-400 flex items-center gap-1">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <time
+            dateTime={task.dueDate}
+            className="text-[11px] text-slate-400 flex items-center gap-1"
+            aria-label={`Prazo: ${task.dueDate}`}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
               <rect x="3" y="4" width="18" height="18" rx="2" />
               <line x1="16" y1="2" x2="16" y2="6" />
               <line x1="8" y1="2" x2="8" y2="6" />
               <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
             {task.dueDate}
-          </span>
+          </time>
         )}
       </div>
-    </div>
+    </article>
   );
 }

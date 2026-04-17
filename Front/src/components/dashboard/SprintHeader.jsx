@@ -16,20 +16,33 @@ export default function SprintHeader() {
         </p>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div
+        className="flex items-center gap-4"
+        role="region"
+        aria-label={`Progresso da sprint: ${progressPercent}%, ${sprintInfo.daysLeft} dias restantes`}
+      >
         <div className="text-right">
           <div className="text-xs text-slate-400">Progresso da Sprint</div>
           <div className="text-sm font-semibold text-[#1B2A4A]">
             {sprintInfo.daysLeft} dias restantes
           </div>
         </div>
-        <div className="w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
+
+        <div
+          role="progressbar"
+          aria-valuenow={progressPercent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`${progressPercent}% concluído`}
+          className="w-32 h-2 bg-slate-200 rounded-full overflow-hidden"
+        >
           <div
-            className="h-full bg-blue-600 rounded-full transition-all"
+            className="h-full bg-blue-600 rounded-full transition-all duration-500"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
-        <span className="text-sm font-semibold text-blue-600">{progressPercent}%</span>
+
+        <span className="text-sm font-semibold text-blue-600" aria-hidden="true">{progressPercent}%</span>
       </div>
     </div>
   );

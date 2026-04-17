@@ -1,23 +1,54 @@
 // src/App.jsx
-
-import { useState } from "react";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import LoginPage from "./components/LoginPage";
+import { useState, lazy, Suspense } from "react";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
-import DashboardPage from "./components/DashboardPage";
-import ComponentesPage from "./components/ComponentesPage";
-import KanbanPage from "./components/KanbanPage";
-import PriorizacaoPage from "./components/PriorizacaoPage";
-import DocumentacaoPage from "./components/DocumentacaoPage";
-import ConfigPage from "./components/ConfigPage";
 
-function AppContent() {
-  const { user, loading, logout } = useAuth();
-  const [sidebarItem, setSidebarItem] = useState("componentes");
+const DashboardPage    = lazy(() => import("./components/DashboardPage"));
+const ComponentesPage  = lazy(() => import("./components/ComponentesPage"));
+const KanbanPage       = lazy(() => import("./components/KanbanPage"));
+const PriorizacaoPage  = lazy(() => import("./components/PriorizacaoPage"));
+const DocumentacaoPage = lazy(() => import("./components/DocumentacaoPage"));
+const ConfigPage       = lazy(() => import("./components/ConfigPage"));
+
+function AppInner() {
+  const { user, loading } = useAuth();
+  const [authView, setAuthView] = useState("login"); // "login" | "register"
+  const [sidebarItem, setSidebarItem] = useState("dashboard");
   const [subItem, setSubItem] = useState("biblioteca");
-  const [compExpanded, setCompExpanded] = useState(true);
+  const [compExpanded, setCompExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState("biblioteca");
+
+  if (loading) {
+    return (
+      <div
+        className="min-h-screen bg-[#1B2A4A] flex items-center justify-center"
+        role="status"
+        aria-label="Carregando aplicação"
+      >
+        <div className="text-center">
+          <div className="text-white text-3xl font-bold tracking-widest mb-5">DEVFLOW</div>
+          <div className="flex items-center justify-center gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="w-2 h-2 rounded-full bg-blue-400 animate-bounce"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return authView === "login"
+      ? <LoginPage onGoRegister={() => setAuthView("register")} />
+      : <RegisterPage onGoLogin={() => setAuthView("login")} />;
+  }
 
   function handleSubItemChange(key) {
     setSubItem(key);
@@ -25,24 +56,6 @@ function AppContent() {
     if (key === "licoes") setActiveTab("licoes");
   }
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#1B2A4A] flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-white text-3xl font-bold tracking-widest mb-2">DEVFLOW</div>
-          <div className="text-white/40 text-sm">Carregando...</div>
-        </div>
-      </div>
-    );
-  }
-
-  // Not authenticated -> show login
-  if (!user) {
-    return <LoginPage />;
-  }
-
-  // Authenticated -> show app
   return (
     <div className="flex h-screen font-['Inter',Arial,sans-serif] bg-slate-100 overflow-hidden">
       <Sidebar
@@ -52,27 +65,35 @@ function AppContent() {
         setSubItem={handleSubItemChange}
         compExpanded={compExpanded}
         setCompExpanded={setCompExpanded}
-        user={user}
-        onLogout={logout}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar sidebarItem={sidebarItem} subItem={subItem} />
 
-        <div className="flex-1 overflow-auto p-8">
-          {sidebarItem === "dashboard" && <DashboardPage />}
-          {sidebarItem === "componentes" && (
-            <ComponentesPage
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              setSubItem={setSubItem}
-            />
-          )}
-          {sidebarItem === "kanban" && <KanbanPage />}
-          {sidebarItem === "priorizacao" && <PriorizacaoPage />}
-          {sidebarItem === "docs" && <DocumentacaoPage />}
-          {sidebarItem === "config" && <ConfigPage />}
-        </div>
+        <main id="main-content" className="flex-1 overflow-auto p-8">
+          <Suspense fallback={
+            <div className="flex items-center justify-center py-20" role="status" aria-label="Carregando página">
+              <div className="flex gap-1.5">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                ))}
+              </div>
+            </div>
+          }>
+            {sidebarItem === "dashboard" && <DashboardPage />}
+            {sidebarItem === "componentes" && (
+              <ComponentesPage
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                setSubItem={setSubItem}
+              />
+            )}
+            {sidebarItem === "kanban" && <KanbanPage />}
+            {sidebarItem === "priorizacao" && <PriorizacaoPage />}
+            {sidebarItem === "docs" && <DocumentacaoPage />}
+            {sidebarItem === "config" && <ConfigPage />}
+          </Suspense>
+        </main>
       </div>
     </div>
   );
@@ -81,7 +102,7 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <AppInner />
     </AuthProvider>
   );
 }

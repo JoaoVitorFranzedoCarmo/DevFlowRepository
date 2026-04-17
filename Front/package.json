@@ -1,25 +1,20 @@
 {
-  "name": "devflow",
+  "name": "devflow-front",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "cd Front && vite",
-    "build": "cd Front && vite build",
-    "preview": "cd Front && vite preview",
-    "dev:back": "cd Back/prisma && npm run dev"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "axios": "^1.14.0",
-    "bcryptjs": "^3.0.3",
-    "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "recharts": "^2.12.0"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.10",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.32",
