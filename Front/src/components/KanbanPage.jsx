@@ -4,7 +4,7 @@ import api from "../services/api";
 import KanbanHeader from "./kanban/KanbanHeader";
 import KanbanColumn from "./kanban/KanbanColumn";
 import NewTaskModal from "./kanban/NewTaskModal";
-import { priorityConfig } from "../data/kanbanData";
+import { mapTask } from "../utils/taskMapper";
 
 const STATUS_TO_COL = {
   BACKLOG: "backlog",
@@ -22,8 +22,6 @@ const COL_TO_STATUS = {
   concluido: "CONCLUIDO",
 };
 
-const PRIORITY_DOWN = { CRITICA: "critica", ALTA: "alta", MEDIA: "media", BAIXA: "baixa" };
-
 const columnMeta = {
   backlog:   { id: "backlog",   title: "Backlog",       color: "#64748B" },
   afazer:    { id: "afazer",    title: "A Fazer",        color: "#2563EB" },
@@ -37,15 +35,7 @@ function buildColumns(tasks) {
   Object.keys(columnMeta).forEach((k) => { cols[k] = { ...columnMeta[k], tasks: [] }; });
   tasks.forEach((t) => {
     const col = STATUS_TO_COL[t.status] || "backlog";
-    cols[col].tasks.push({
-      id: t.id,
-      title: t.title,
-      desc: t.desc || "",
-      priority: PRIORITY_DOWN[t.priority] || "media",
-      assignee: t.assignee?.name || "—",
-      tags: t.tags || [],
-      dueDate: t.dueDate ? new Date(t.dueDate).toLocaleDateString("pt-BR") : "—",
-    });
+    cols[col].tasks.push(mapTask(t));
   });
   return cols;
 }
@@ -58,6 +48,7 @@ export default function KanbanPage() {
     Object.keys(columnMeta).forEach((k) => { cols[k] = { ...columnMeta[k], tasks: [] }; });
     return cols;
   });
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [search, setSearch] = useState("");
@@ -65,6 +56,7 @@ export default function KanbanPage() {
   const [filterAssignee, setFilterAssignee] = useState("todos");
   const [modalOpen, setModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState("BACKLOG");
+  const [editingTask, setEditingTask] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const fetchTasks = useCallback(async () => {
@@ -78,7 +70,20 @@ export default function KanbanPage() {
     }
   }, []);
 
-  useEffect(() => { fetchTasks(); }, [fetchTasks]);
+  const fetchUsers = useCallback(async () => {
+    try {
+      const { data } = await api.get("/users");
+      setUsers(Array.isArray(data) ? data : []);
+    } catch {
+      setUsers([]);
+    }
+  }, []);
+
+  useEffect(() => { fetchTasks(); fetchUsers(); }, [fetchTasks, fetchUsers]);
+
+  const allTasksFlat = useMemo(() => {
+    return Object.values(columns).flatMap((c) => c.tasks);
+  }, [columns]);
 
   const findColumnByTask = useCallback((taskId) => {
     return Object.keys(columns).find((colId) =>
@@ -98,49 +103,88 @@ export default function KanbanPage() {
     if (!sourceColId || sourceColId === targetColId) { setDraggedTaskId(null); return; }
 
     const taskId = draggedTaskId;
-    // Atualiza UI imediatamente (optimistic)
     setColumns((prev) => {
       const newCols = structuredClone(prev);
       const taskIdx = newCols[sourceColId].tasks.findIndex((t) => t.id === taskId);
       if (taskIdx === -1) return prev;
       const [task] = newCols[sourceColId].tasks.splice(taskIdx, 1);
+      task.statusRaw = COL_TO_STATUS[targetColId];
       newCols[targetColId].tasks.push(task);
       return newCols;
     });
     setDraggedTaskId(null);
 
-    // Persiste no backend
     try {
       await api.patch(`/tasks/${taskId}/move`, { status: COL_TO_STATUS[targetColId] });
     } catch {
-      fetchTasks(); // Reverte em caso de erro
+      fetchTasks();
     }
   }, [draggedTaskId, findColumnByTask, fetchTasks]);
 
-  const handleCreateTask = useCallback(async (data) => {
+  const handleSaveTask = useCallback(async (data) => {
     setSaving(true);
     try {
-      await api.post("/tasks", data);
+      const payload = {
+        title: data.title,
+        desc: data.desc,
+        status: data.status,
+        priority: data.priority,
+        tags: data.tags,
+        dueDate: data.dueDate,
+        assigneeId: data.assigneeId || null,
+        estimatedHours: data.estimatedHours,
+      };
+      let taskId;
+      if (editingTask) {
+        const { data: updated } = await api.put(`/tasks/${editingTask.id}`, payload);
+        taskId = updated.id;
+      } else {
+        const { data: created } = await api.post("/tasks", payload);
+        taskId = created.id;
+      }
+      if (Array.isArray(data.dependencies)) {
+        try {
+          await api.put(`/tasks/${taskId}/dependencies`, { targetTaskIds: data.dependencies });
+        } catch (e) {
+          console.error("Erro ao salvar dependências:", e);
+        }
+      }
+      if (data.prioritization) {
+        try {
+          await api.put(`/tasks/${taskId}/prioritization`, data.prioritization);
+        } catch (e) {
+          console.error("Erro ao salvar priorização:", e);
+        }
+      }
       setModalOpen(false);
+      setEditingTask(null);
       await fetchTasks();
-    } catch {
-      // silently fail — user sees no feedback change
+    } catch (e) {
+      console.error("Erro ao salvar tarefa:", e);
     } finally {
       setSaving(false);
     }
-  }, [fetchTasks]);
+  }, [editingTask, fetchTasks]);
 
   const handleDeleteTask = useCallback(async (taskId) => {
+    const ok = window.confirm("Excluir esta tarefa? Esta ação não pode ser desfeita.");
+    if (!ok) return;
     try {
       await api.delete(`/tasks/${taskId}`);
       await fetchTasks();
-    } catch {
-      // silently fail
+    } catch (e) {
+      console.error("Erro ao excluir tarefa:", e);
     }
   }, [fetchTasks]);
 
   const openNewTaskModal = useCallback((colId) => {
+    setEditingTask(null);
     setModalStatus(COL_TO_STATUS[colId] || "BACKLOG");
+    setModalOpen(true);
+  }, []);
+
+  const openEditModal = useCallback((task) => {
+    setEditingTask(task);
     setModalOpen(true);
   }, []);
 
@@ -167,12 +211,10 @@ export default function KanbanPage() {
   if (loading) {
     return (
       <div aria-label="Carregando quadro Kanban" aria-busy="true">
-        {/* Header skeleton */}
         <div className="mb-6">
           <div className="skeleton h-7 w-24 mb-2" />
           <div className="skeleton h-4 w-64" />
         </div>
-        {/* Columns skeleton */}
         <div className="flex gap-4 overflow-x-hidden">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="w-72 shrink-0">
@@ -209,12 +251,12 @@ export default function KanbanPage() {
         setFilterPriority={setFilterPriority}
         filterAssignee={filterAssignee}
         setFilterAssignee={setFilterAssignee}
-        onNewTask={() => { setModalStatus("BACKLOG"); setModalOpen(true); }}
+        onNewTask={() => { setEditingTask(null); setModalStatus("BACKLOG"); setModalOpen(true); }}
       />
 
-      <div className="flex items-center gap-4 mb-4 text-xs text-slate-400">
+      <div className="flex items-center gap-4 mb-4 text-xs text-slate-400 dark:text-slate-500 flex-wrap">
         <span>{totalTasks} tarefas no total</span>
-        <span className="w-px h-3 bg-slate-200" />
+        <span className="w-px h-3 bg-slate-200 dark:bg-slate-700" />
         {columnOrder.map((colId) => (
           <span key={colId} className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: columns[colId].color }} />
@@ -231,6 +273,7 @@ export default function KanbanPage() {
             onDragStart={handleDragStart}
             onDrop={handleDrop}
             onNewTask={() => openNewTaskModal(colId)}
+            onEditTask={openEditModal}
             onDeleteTask={handleDeleteTask}
           />
         ))}
@@ -239,8 +282,11 @@ export default function KanbanPage() {
       {modalOpen && (
         <NewTaskModal
           initialStatus={modalStatus}
-          onConfirm={handleCreateTask}
-          onClose={() => setModalOpen(false)}
+          task={editingTask}
+          users={users}
+          allTasks={allTasksFlat}
+          onConfirm={handleSaveTask}
+          onClose={() => { setModalOpen(false); setEditingTask(null); }}
           loading={saving}
         />
       )}

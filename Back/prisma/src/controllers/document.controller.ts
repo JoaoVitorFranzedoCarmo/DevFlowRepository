@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { documentService } from "../services/document.service";
 import { ForbiddenError } from "../utils/errors";
-import  prisma  from "../config/database";
+import { userRepository } from "../repositories/user.repository";
 
 export class DocumentController {
   async findAll(req: Request, res: Response) {
@@ -45,28 +45,37 @@ export class DocumentController {
     res.status(204).send();
   }
 
-    async addVersion(req: Request, res: Response) {
-        const payload = { ...req.body } as any;
-
-        if (!payload.author) {
-            const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
-            payload.author = user?.name ?? req.user!.userId;
-        }
-
-        const existing = await documentService.findById(req.params.id);
-        if (existing.authorId !== req.user!.userId && req.user!.role !== "GERENTE") {
-            throw new ForbiddenError("Permissão negada para adicionar versão ao documento");
-        }
-
-        const version = await documentService.addVersion(req.params.id, payload, {
-            userId: req.user!.userId,
-            role: req.user!.role,
-        });
-        res.status(201).json(version);
+  async addVersion(req: Request, res: Response) {
+    const payload = { ...req.body } as any;
+    if (!payload.author) {
+      const user = await userRepository.findById(req.user!.userId);
+      payload.author = user?.name ?? req.user!.userId;
     }
+    const version = await documentService.addVersion(req.params.id, payload, {
+      userId: req.user!.userId,
+      role: req.user!.role,
+    });
+    res.status(201).json(version);
+  }
+
   async getVersionHistory(_req: Request, res: Response) {
     const history = await documentService.getVersionHistory();
     res.json(history);
+  }
+
+  async getDocumentVersions(req: Request, res: Response) {
+    const versions = await documentService.getDocumentVersions(req.params.id);
+    res.json(versions);
+  }
+
+  async restoreVersion(req: Request, res: Response) {
+    const user = await userRepository.findById(req.user!.userId);
+    const result = await documentService.restoreVersion(req.params.id, req.params.versionId, {
+      userId: req.user!.userId,
+      role: req.user!.role,
+    });
+    res.json(result);
+    void user;
   }
 
   async getStats(_req: Request, res: Response) {
@@ -74,11 +83,22 @@ export class DocumentController {
     res.json(stats);
   }
 
-  // Strategy: gera conteúdo do documento usando a estratégia adequada (HTML ou PDF)
+  // Apenas preview — NÃO salva
   async generateContent(req: Request, res: Response) {
     const { format } = req.query;
     const content = await documentService.generateContent(req.params.id, format as string | undefined);
     res.type("text/plain").send(content);
+  }
+
+  // Gera e salva no documento + cria versão
+  async generateAndSave(req: Request, res: Response) {
+    const user = await userRepository.findById(req.user!.userId);
+    const result = await documentService.generateAndSave(req.params.id, req.body, {
+      userId: req.user!.userId,
+      role: req.user!.role,
+      name: user?.name,
+    });
+    res.json(result);
   }
 }
 

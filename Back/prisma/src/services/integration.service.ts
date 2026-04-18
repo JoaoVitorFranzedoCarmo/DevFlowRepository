@@ -1,50 +1,43 @@
-import prisma from "../config/database";
-import { NotFoundError, ForbiddenError } from "../utils/errors";
+import { NotFoundError } from "../utils/errors";
+import { IntegrationRepository, integrationRepository } from "../repositories/integration.repository";
 
 export class IntegrationService {
+  constructor(private repo: IntegrationRepository = integrationRepository) {}
+
   async findByUser(userId: string) {
-    return prisma.integration.findMany({
-      where: { userId },
-      orderBy: { name: "asc" },
-    });
+    return this.repo.findByUser(userId);
   }
 
   async findById(id: string) {
-    const integration = await prisma.integration.findUnique({ where: { id } });
+    const integration = await this.repo.findUnique(id);
     if (!integration) throw new NotFoundError("Integração");
     return integration;
   }
 
   async create(userId: string, data: { name: string; desc: string; status?: string; icon?: string }) {
-    return prisma.integration.create({
-      data: {
-        name: data.name,
-        desc: data.desc,
-        status: data.status || "desconectado",
-        icon: data.icon || "",
-        userId,
-      },
+    return this.repo.create({
+      name: data.name,
+      desc: data.desc,
+      status: data.status || "desconectado",
+      icon: data.icon || "",
+      userId,
     });
   }
 
   async update(id: string, data: Partial<{ status: string; desc: string }>) {
-    const integration = await this.findById(id);
-    // if no user passed, allow (backwards compat). Caller should pass user to enforce ownership.
-    return prisma.integration.update({ where: { id }, data });
+    await this.findById(id);
+    return this.repo.update(id, data);
   }
 
   async toggle(id: string) {
     const integration = await this.findById(id);
     const newStatus = integration.status === "conectado" ? "desconectado" : "conectado";
-    return prisma.integration.update({
-      where: { id },
-      data: { status: newStatus },
-    });
+    return this.repo.update(id, { status: newStatus });
   }
 
   async delete(id: string) {
     await this.findById(id);
-    await prisma.integration.delete({ where: { id } });
+    await this.repo.delete(id);
   }
 }
 

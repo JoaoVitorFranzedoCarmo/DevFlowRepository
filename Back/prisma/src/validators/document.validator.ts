@@ -8,6 +8,8 @@ export const createDocumentSchema = z.object({
   codeVersion: z.string().optional(),
   status: z.enum(["ATUALIZADO", "DESATUALIZADO", "RASCUNHO"]).optional(),
   pages: z.number().int().min(0).optional(),
+  sourceCode: z.string().optional(),
+  content: z.string().optional(),
 });
 
 export const updateDocumentSchema = z.object({
@@ -18,11 +20,21 @@ export const updateDocumentSchema = z.object({
   codeVersion: z.string().optional(),
   status: z.enum(["ATUALIZADO", "DESATUALIZADO", "RASCUNHO"]).optional(),
   pages: z.number().int().min(0).optional(),
+  sourceCode: z.string().optional(),
+  content: z.string().optional(),
 });
 
 export const createDocVersionSchema = z.object({
   version: z.string().min(1, "Versão é obrigatória"),
-  commit: z.string().min(1, "Commit é obrigatório"),
+  commit: z.string().optional().default(""),
   changes: z.string().min(1, "Descrição das mudanças é obrigatória"),
-  author: z.string().min(1, "Autor é obrigatório"),
+  author: z.string().optional(),
+  content: z.string().optional(),
+});
+
+export const generateDocSchema = z.object({
+  sourceCode: z.string().optional(),
+  format: z.enum(["HTML", "PDF", "MARKDOWN"]).optional(),
+  commit: z.string().optional(),
+  changes: z.string().optional(),
 });

@@ -8,6 +8,8 @@ import documentRoutes from "./document.routes";
 import templateRoutes from "./template.routes";
 import integrationRoutes from "./integration.routes";
 import notificationRoutes from "./notification.routes";
+import rbacRoutes from "./rbac.routes";
+import systemConfigRoutes from "./system-config.routes";
 
 const router = Router();
 
@@ -20,5 +22,7 @@ router.use("/documents", documentRoutes);
 router.use("/templates", templateRoutes);
 router.use("/integrations", integrationRoutes);
 router.use("/notifications", notificationRoutes);
+router.use("/rbac", rbacRoutes);
+router.use("/system-config", systemConfigRoutes);
 
 export default router;

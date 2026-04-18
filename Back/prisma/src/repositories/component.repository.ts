@@ -28,6 +28,7 @@ export class ComponentRepository {
     category: string;
     lang: string;
     tags?: string[];
+    codeSnippet?: string;
     authorId: string;
   }) {
     return prisma.component.create({ data, include: componentInclude });

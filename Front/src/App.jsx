@@ -1,6 +1,7 @@
 // src/App.jsx
 import { useState, lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import Sidebar from "./components/Sidebar";
@@ -57,7 +58,7 @@ function AppInner() {
   }
 
   return (
-    <div className="flex h-screen font-['Inter',Arial,sans-serif] bg-slate-100 overflow-hidden">
+    <div className="flex h-screen font-['Inter',Arial,sans-serif] bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 overflow-hidden">
       <Sidebar
         sidebarItem={sidebarItem}
         setSidebarItem={setSidebarItem}
@@ -101,8 +102,10 @@ function AppInner() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppInner />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppInner />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

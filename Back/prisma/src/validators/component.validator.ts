@@ -6,6 +6,7 @@ export const createComponentSchema = z.object({
   category: z.string().min(1, "Categoria é obrigatória"),
   lang: z.string().min(1, "Linguagem é obrigatória"),
   tags: z.array(z.string()).optional().default([]),
+  codeSnippet: z.string().min(1, "Trecho de código é obrigatório"),
 });
 
 export const updateComponentSchema = z.object({
@@ -16,4 +17,5 @@ export const updateComponentSchema = z.object({
   tags: z.array(z.string()).optional(),
   uses: z.number().int().min(0).optional(),
   rating: z.number().min(0).max(5).optional(),
+  codeSnippet: z.string().optional(),
 });

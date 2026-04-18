@@ -1,11 +1,29 @@
 // src/components/componentes/ComponentDetail.jsx
-
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import StarRating from "./StarRating";
 
-export default function ComponentDetail({ comp, onBack }) {
+const LANG_MAP = {
+  "React": "jsx",
+  "Node.js": "javascript",
+  "JavaScript": "javascript",
+  "TypeScript": "typescript",
+  "Python": "python",
+  "Java": "java",
+  "C#": "csharp",
+  "Go": "go",
+};
+
+export default function ComponentDetail({ comp, onBack, onEdit, onDelete }) {
+  const authorName = comp.author?.name || comp.author || "—";
+  const createdAt = comp.createdAt
+    ? new Date(comp.createdAt).toLocaleDateString("pt-BR")
+    : comp.date || "—";
+  const code = comp.codeSnippet || "// Sem trecho de código";
+  const lang = LANG_MAP[comp.lang] || "javascript";
+
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      {/* Header */}
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
       <div className="bg-[#1B2A4A] px-6 py-5 flex justify-between items-center">
         <div>
           <div className="text-white text-lg font-bold">{comp.name}</div>
@@ -13,92 +31,87 @@ export default function ComponentDetail({ comp, onBack }) {
             {comp.category} · {comp.lang}
           </div>
         </div>
-        <button
-          onClick={onBack}
-          className="bg-white/15 text-white px-3.5 py-1.5 rounded-md text-[13px] hover:bg-white/25 transition-colors"
-        >
-          Voltar
-        </button>
+        <div className="flex gap-2">
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="bg-white/15 text-white px-3.5 py-1.5 rounded-md text-[13px] hover:bg-white/25 transition-colors"
+            >
+              Editar
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              className="bg-red-500/80 text-white px-3.5 py-1.5 rounded-md text-[13px] hover:bg-red-500 transition-colors"
+            >
+              Excluir
+            </button>
+          )}
+          <button
+            onClick={onBack}
+            className="bg-white/15 text-white px-3.5 py-1.5 rounded-md text-[13px] hover:bg-white/25 transition-colors"
+          >
+            Voltar
+          </button>
+        </div>
       </div>
 
-      {/* Content */}
       <div className="p-6">
-        <div className="grid grid-cols-[2fr_1fr] gap-6">
-          {/* Left Column */}
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
           <div>
-            <h3 className="text-[15px] font-semibold text-[#1B2A4A] mb-2">Descrição</h3>
-            <p className="text-sm text-slate-600 leading-relaxed mb-5">{comp.desc}</p>
+            <h3 className="text-[15px] font-semibold text-[#1B2A4A] dark:text-slate-100 mb-2">Descrição</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5">{comp.desc}</p>
 
-            <h3 className="text-[15px] font-semibold text-[#1B2A4A] mb-2">Tags</h3>
+            <h3 className="text-[15px] font-semibold text-[#1B2A4A] dark:text-slate-100 mb-2">Tags</h3>
             <div className="flex gap-1.5 flex-wrap mb-5">
-              {comp.tags.map((t) => (
+              {(comp.tags || []).map((t) => (
                 <span
                   key={t}
-                  className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded text-xs font-medium"
+                  className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 px-2.5 py-1 rounded text-xs font-medium"
                 >
                   {t}
                 </span>
               ))}
             </div>
 
-            <h3 className="text-[15px] font-semibold text-[#1B2A4A] mb-2">
-              Prévia do Código
+            <h3 className="text-[15px] font-semibold text-[#1B2A4A] dark:text-slate-100 mb-2">
+              Trecho de Código
             </h3>
-            <div className="bg-slate-800 rounded-lg p-4 font-mono text-xs text-slate-400 leading-7">
-              <div>
-                <span className="text-purple-400">import</span>{" "}
-                <span className="text-blue-400">
-                  {"{ " + comp.tags[0] + " }"}
-                </span>{" "}
-                <span className="text-purple-400">from</span>{" "}
-                <span className="text-green-500">
-                  '{comp.name.toLowerCase().replace(/ /g, "-")}'
-                </span>
-                ;
-              </div>
-              <div className="mt-2">
-                <span className="text-slate-500">// Exemplo de uso</span>
-              </div>
-              <div>
-                <span className="text-purple-400">const</span>{" "}
-                <span className="text-amber-400">result</span> ={" "}
-                <span className="text-purple-400">await</span>{" "}
-                <span className="text-blue-400">{comp.tags[0]}</span>.
-                <span className="text-amber-400">init</span>();
-              </div>
+            <div className="rounded-lg overflow-hidden text-xs">
+              <SyntaxHighlighter
+                language={lang}
+                style={oneDark}
+                showLineNumbers
+                customStyle={{ margin: 0, padding: "1rem", borderRadius: "0.5rem", fontSize: "12px" }}
+              >
+                {code}
+              </SyntaxHighlighter>
             </div>
           </div>
 
-          {/* Right Column */}
           <div>
-            <div className="bg-slate-50 rounded-lg p-5 border border-slate-200">
-              <div className="text-[13px] text-slate-400 mb-3">Informações</div>
+            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-5 border border-slate-200 dark:border-slate-700">
+              <div className="text-[13px] text-slate-400 dark:text-slate-400 mb-3">Informações</div>
               {[
-                ["Autor", comp.author],
-                ["Criado em", comp.date],
+                ["Autor", authorName],
+                ["Criado em", createdAt],
                 ["Linguagem", comp.lang],
-                ["Reutilizações", comp.uses + "x"],
+                ["Reutilizações", (comp.uses ?? 0) + "x"],
               ].map(([label, value]) => (
                 <div
                   key={label}
-                  className="flex justify-between py-2 border-b border-slate-100"
+                  className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700"
                 >
-                  <span className="text-[13px] text-slate-400">{label}</span>
-                  <span className="text-[13px] text-[#1B2A4A] font-medium">{value}</span>
+                  <span className="text-[13px] text-slate-400 dark:text-slate-400">{label}</span>
+                  <span className="text-[13px] text-[#1B2A4A] dark:text-slate-100 font-medium">{value}</span>
                 </div>
               ))}
               <div className="flex justify-between py-2">
-                <span className="text-[13px] text-slate-400">Avaliação</span>
-                <StarRating rating={comp.rating} />
+                <span className="text-[13px] text-slate-400 dark:text-slate-400">Avaliação</span>
+                <StarRating rating={comp.rating ?? 0} />
               </div>
             </div>
-
-            <button className="w-full mt-4 py-3 bg-blue-600 text-white rounded-md text-sm font-semibold hover:bg-blue-700 transition-colors">
-              Importar para Projeto
-            </button>
-            <button className="w-full mt-2 py-3 bg-transparent text-blue-600 border border-blue-600 rounded-md text-sm font-medium hover:bg-blue-50 transition-colors">
-              Ver Código Completo
-            </button>
           </div>
         </div>
       </div>

@@ -24,6 +24,9 @@ export default function DocList() {
   const [filterStatus, setFilterStatus] = useState("todos");
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState(null);
+  const [previewContent, setPreviewContent] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const fetchDocs = useCallback(async () => {
     try {
@@ -65,6 +68,29 @@ export default function DocList() {
     }
   }
 
+  async function handlePreview(doc) {
+    setPreviewDoc(doc);
+    if (doc.content && doc.content.trim().length > 0) {
+      setPreviewContent(doc.content);
+      return;
+    }
+    setPreviewLoading(true);
+    setPreviewContent("");
+    try {
+      const { data } = await api.get(`/documents/${doc.id}/content`, {
+        params: { format: doc.format || "HTML" },
+        responseType: "text",
+        transformResponse: [(r) => r],
+      });
+      setPreviewContent(data);
+    } catch (err) {
+      console.error("Erro ao carregar preview:", err);
+      setPreviewContent("<p>Erro ao gerar preview.</p>");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
   const TypeIcon = ({ type }) => {
     if (type === "OPENAPI") return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="1.8" strokeLinecap="round"><path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" /></svg>;
     if (type === "MANUAL") return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" /></svg>;
@@ -72,9 +98,9 @@ export default function DocList() {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-5">
+    <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-[#1B2A4A]">Documentos Gerados</h3>
+        <h3 className="text-sm font-semibold text-[#1B2A4A] dark:text-slate-100">Documentos Gerados</h3>
         <button
           onClick={() => setModalOpen(true)}
           className="px-3.5 py-1.5 bg-blue-600 text-white rounded-md text-[12px] font-semibold hover:bg-blue-700 transition-colors flex items-center gap-1.5"
@@ -85,11 +111,10 @@ export default function DocList() {
             <line x1="12" y1="18" x2="12" y2="12" />
             <line x1="9" y1="15" x2="15" y2="15" />
           </svg>
-          Gerar Novo
+          Novo Documento
         </button>
       </div>
 
-      {/* Filters */}
       <div className="flex gap-3 mb-4">
         <div className="relative flex-1">
           <input
@@ -97,17 +122,17 @@ export default function DocList() {
             placeholder="Buscar documentos..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full py-2 pl-9 pr-3.5 border border-slate-200 rounded-md text-sm outline-none focus:border-blue-500 bg-white"
+            className="w-full py-2 pl-9 pr-3.5 border border-slate-200 dark:border-slate-600 rounded-md text-sm outline-none focus:border-blue-500 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
           />
           <span className="absolute left-3 top-1/2 -translate-y-1/2"><SearchIcon /></span>
         </div>
-        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-md text-[12px] bg-white text-slate-600 cursor-pointer">
+        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md text-[12px] bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-200 cursor-pointer">
           <option value="todos">Todos os tipos</option>
           <option value="OPENAPI">API REST</option>
           <option value="TECNICA">Técnica</option>
           <option value="MANUAL">Manual</option>
         </select>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-md text-[12px] bg-white text-slate-600 cursor-pointer">
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md text-[12px] bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-200 cursor-pointer">
           <option value="todos">Todos os status</option>
           <option value="ATUALIZADO">Atualizado</option>
           <option value="DESATUALIZADO">Desatualizado</option>
@@ -124,7 +149,7 @@ export default function DocList() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-[1fr_80px_70px_90px_100px_90px_80px] gap-2 px-3 py-2 text-[11px] text-slate-400 font-medium border-b border-slate-100">
+          <div className="grid grid-cols-[1fr_80px_70px_90px_100px_90px_110px] gap-2 px-3 py-2 text-[11px] text-slate-400 font-medium border-b border-slate-100 dark:border-slate-700">
             <span>Documento</span>
             <span className="text-center">Tipo</span>
             <span className="text-center">Formato</span>
@@ -142,13 +167,13 @@ export default function DocList() {
               : "?";
 
             return (
-              <div key={doc.id} className="grid grid-cols-[1fr_80px_70px_90px_100px_90px_80px] gap-2 px-3 py-3 items-center text-[12px] border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
+              <div key={doc.id} className="grid grid-cols-[1fr_80px_70px_90px_100px_90px_110px] gap-2 px-3 py-3 items-center text-[12px] border-b border-slate-50 dark:border-slate-700 last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0">
                     <TypeIcon type={doc.type} />
                   </div>
                   <div className="min-w-0">
-                    <div className="font-medium text-[#1B2A4A] truncate">{doc.title}</div>
+                    <div className="font-medium text-[#1B2A4A] dark:text-slate-100 truncate">{doc.title}</div>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <div className="w-4 h-4 rounded-full bg-[#1B2A4A] text-white flex items-center justify-center text-[7px] font-semibold">{initials}</div>
                       <span className="text-[10px] text-slate-400">
@@ -165,10 +190,10 @@ export default function DocList() {
                 </div>
 
                 <div className="text-center">
-                  <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px] font-medium">{doc.format}</span>
+                  <span className="bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 px-2 py-0.5 rounded text-[10px] font-medium">{doc.format}</span>
                 </div>
 
-                <div className="text-center font-mono text-[11px] text-slate-600">{doc.version}</div>
+                <div className="text-center font-mono text-[11px] text-slate-600 dark:text-slate-300">{doc.version}</div>
                 <div className="text-center font-mono text-[11px] text-blue-600">{doc.codeVersion || "—"}</div>
 
                 <div className="text-center">
@@ -177,8 +202,18 @@ export default function DocList() {
 
                 <div className="flex items-center justify-center gap-1.5">
                   <button
+                    onClick={() => handlePreview(doc)}
+                    className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-400 hover:text-blue-600"
+                    title="Visualizar"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  </button>
+                  <button
                     onClick={() => handleDelete(doc.id)}
-                    className="p-1 rounded hover:bg-slate-100 transition-colors text-slate-400 hover:text-red-600"
+                    className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-400 hover:text-red-600"
                     title="Excluir"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -200,6 +235,46 @@ export default function DocList() {
           onClose={() => setModalOpen(false)}
           loading={saving}
         />
+      )}
+
+      {previewDoc && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => { setPreviewDoc(null); setPreviewContent(""); }}
+        >
+          <div
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-5xl h-[85vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-[#1B2A4A] dark:text-slate-100">{previewDoc.title}</h3>
+                <div className="text-[11px] text-slate-400">
+                  {previewDoc.type} · {previewDoc.format} · {previewDoc.version}
+                </div>
+              </div>
+              <button
+                onClick={() => { setPreviewDoc(null); setPreviewContent(""); }}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto">
+              {previewLoading ? (
+                <div className="p-12 text-center text-slate-400 text-sm">Carregando preview...</div>
+              ) : previewDoc.format === "HTML" ? (
+                <iframe title="preview" srcDoc={previewContent} className="w-full h-full border-0 bg-white" />
+              ) : (
+                <pre className="p-5 text-[12px] font-mono text-slate-700 dark:text-slate-200 whitespace-pre-wrap">
+                  {previewContent}
+                </pre>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -56,22 +56,25 @@ enum Quadrant {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(DESENVOLVEDOR)
-  avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String      @id @default(uuid())
+  name         String
+  email        String      @unique
+  password     String
+  role         Role        @default(DESENVOLVEDOR)
+  customRoleId String?
+  customRole   CustomRole? @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
+  avatar       String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
-  components         Component[]
-  lessons            Lesson[]
-  assignedTasks      Task[]               @relation("TaskAssignee")
-  documents          Document[]
-  integrations       Integration[]
+  components           Component[]
+  lessons              Lesson[]
+  assignedTasks        Task[]                @relation("TaskAssignee")
+  documents            Document[]
+  integrations         Integration[]
   notificationSettings NotificationSetting[]
-  refreshTokens      RefreshToken[]
+  notifications        Notification[]
+  refreshTokens        RefreshToken[]
 
   @@map("users")
 }
@@ -88,18 +91,19 @@ model RefreshToken {
 }
 
 model Component {
-  id        String   @id @default(uuid())
-  name      String
-  desc      String
-  category  String
-  lang      String
-  tags      String[] @default([])
-  uses      Int      @default(0)
-  rating    Float    @default(0)
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  name        String
+  desc        String
+  category    String
+  lang        String
+  tags        String[] @default([])
+  uses        Int      @default(0)
+  rating      Float    @default(0)
+  codeSnippet String   @default("")
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("components")
 }
@@ -118,21 +122,22 @@ model Lesson {
 }
 
 model Task {
-  id          String       @id @default(uuid())
-  title       String
-  desc        String       @default("")
-  status      TaskStatus   @default(BACKLOG)
-  priority    TaskPriority @default(MEDIA)
-  tags        String[]     @default([])
-  dueDate     DateTime?
-  assigneeId  String?
-  assignee    User?        @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id             String       @id @default(uuid())
+  title          String
+  desc           String       @default("")
+  status         TaskStatus   @default(BACKLOG)
+  priority       TaskPriority @default(MEDIA)
+  tags           String[]     @default([])
+  dueDate        DateTime?
+  estimatedHours Float        @default(2)
+  assigneeId     String?
+  assignee       User?        @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   prioritization TaskPrioritization?
-  dependedBy     TaskDependency[] @relation("DependencyTarget")
-  dependsOn      TaskDependency[] @relation("DependencySource")
+  dependedBy     TaskDependency[]    @relation("DependencyTarget")
+  dependsOn      TaskDependency[]    @relation("DependencySource")
 
   @@map("tasks")
 }
@@ -170,6 +175,8 @@ model Document {
   codeVersion String    @default("")
   status      DocStatus @default(RASCUNHO)
   pages       Int       @default(0)
+  content     String    @default("")
+  sourceCode  String    @default("")
   authorId    String
   author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
@@ -188,6 +195,7 @@ model DocumentVersion {
   commit     String
   changes    String
   author     String
+  content    String   @default("")
   createdAt  DateTime @default(now())
 
   @@map("document_versions")
@@ -230,4 +238,54 @@ model NotificationSetting {
 
   @@unique([userId, eventKey])
   @@map("notification_settings")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  message   String
+  link      String   @default("")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+model CustomRole {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String   @default("")
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("custom_roles")
+}
+
+model RolePermission {
+  id           String      @id @default(uuid())
+  roleName     String
+  customRoleId String?
+  customRole   CustomRole? @relation(fields: [customRoleId], references: [id], onDelete: Cascade)
+  module       String
+  action       String
+  allowed      Boolean     @default(false)
+
+  @@unique([roleName, module, action])
+  @@map("role_permissions")
+}
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
 }

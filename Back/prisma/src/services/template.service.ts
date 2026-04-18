@@ -1,19 +1,21 @@
-import prisma from "../config/database";
 import { NotFoundError, ForbiddenError } from "../utils/errors";
+import { TemplateRepository, templateRepository } from "../repositories/template.repository";
 
 export class TemplateService {
+  constructor(private repo: TemplateRepository = templateRepository) {}
+
   async findAll() {
-    return prisma.template.findMany({ orderBy: { uses: "desc" } });
+    return this.repo.findMany();
   }
 
   async findById(id: string) {
-    const template = await prisma.template.findUnique({ where: { id } });
+    const template = await this.repo.findUnique(id);
     if (!template) throw new NotFoundError("Template");
     return template;
   }
 
   async create(data: { name: string; desc: string; icon?: string }) {
-    return prisma.template.create({ data });
+    return this.repo.create(data);
   }
 
   async update(
@@ -25,7 +27,7 @@ export class TemplateService {
     if (user && user.role !== "GERENTE") {
       throw new ForbiddenError("Apenas gerentes podem atualizar templates");
     }
-    return prisma.template.update({ where: { id }, data });
+    return this.repo.update(id, data);
   }
 
   async delete(id: string, user?: { userId: string; role: string }) {
@@ -33,15 +35,12 @@ export class TemplateService {
     if (user && user.role !== "GERENTE") {
       throw new ForbiddenError("Apenas gerentes podem excluir templates");
     }
-    await prisma.template.delete({ where: { id } });
+    await this.repo.delete(id);
   }
 
   async incrementUses(id: string) {
     await this.findById(id);
-    return prisma.template.update({
-      where: { id },
-      data: { uses: { increment: 1 } },
-    });
+    return this.repo.incrementUses(id);
   }
 }
 

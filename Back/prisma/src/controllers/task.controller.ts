@@ -44,7 +44,6 @@ export class TaskController {
     res.status(204).send();
   }
 
-  // Prioritization
   async setPrioritization(req: Request, res: Response) {
     const result = await taskService.setPrioritization(req.params.id, req.body);
     res.json(result);
@@ -55,10 +54,14 @@ export class TaskController {
     res.json(tasks);
   }
 
-  // Dependencies
   async addDependency(req: Request, res: Response) {
     const result = await taskService.addDependency(req.params.id, req.body.targetTaskId);
     res.status(201).json(result);
+  }
+
+  async setDependencies(req: Request, res: Response) {
+    const result = await taskService.setDependencies(req.params.id, req.body.targetTaskIds);
+    res.json(result);
   }
 
   async removeDependency(req: Request, res: Response) {
@@ -66,10 +69,19 @@ export class TaskController {
     res.status(204).send();
   }
 
-  // Dashboard
   async getDashboardStats(_req: Request, res: Response) {
     const stats = await taskService.getDashboardStats();
     res.json(stats);
+  }
+
+  async getCostEstimate(_req: Request, res: Response) {
+    const cost = await taskService.getCostEstimate();
+    res.json(cost);
+  }
+
+  async checkDueSoon(_req: Request, res: Response) {
+    const count = await taskService.checkDueSoon();
+    res.json({ count });
   }
 }
 

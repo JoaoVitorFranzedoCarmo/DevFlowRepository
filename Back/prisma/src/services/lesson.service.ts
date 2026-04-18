@@ -1,9 +1,11 @@
-import prisma from "../config/database";
 import { NotFoundError } from "../utils/errors";
+import { LessonRepository, lessonRepository } from "../repositories/lesson.repository";
 
 export class LessonService {
+  constructor(private repo: LessonRepository = lessonRepository) {}
+
   async findAll(search?: string) {
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (search) {
       where.OR = [
         { title: { contains: search, mode: "insensitive" } },
@@ -11,58 +13,27 @@ export class LessonService {
         { project: { contains: search, mode: "insensitive" } },
       ];
     }
-
-    return prisma.lesson.findMany({
-      where,
-      include: {
-        author: {
-          select: { id: true, name: true, avatar: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    return this.repo.findMany(where);
   }
 
   async findById(id: string) {
-    const lesson = await prisma.lesson.findUnique({
-      where: { id },
-      include: {
-        author: {
-          select: { id: true, name: true, avatar: true },
-        },
-      },
-    });
+    const lesson = await this.repo.findUnique(id);
     if (!lesson) throw new NotFoundError("Lição");
     return lesson;
   }
 
   async create(data: { title: string; project: string; desc: string; authorId: string }) {
-    return prisma.lesson.create({
-      data,
-      include: {
-        author: {
-          select: { id: true, name: true, avatar: true },
-        },
-      },
-    });
+    return this.repo.create(data);
   }
 
   async update(id: string, data: Partial<{ title: string; project: string; desc: string }>) {
     await this.findById(id);
-    return prisma.lesson.update({
-      where: { id },
-      data,
-      include: {
-        author: {
-          select: { id: true, name: true, avatar: true },
-        },
-      },
-    });
+    return this.repo.update(id, data as Record<string, unknown>);
   }
 
   async delete(id: string) {
     await this.findById(id);
-    await prisma.lesson.delete({ where: { id } });
+    await this.repo.delete(id);
   }
 }
 

@@ -22,7 +22,10 @@ export const taskInclude = {
 } as const;
 
 export class TaskRepository {
-  async findMany(where: Record<string, unknown> = {}, orderBy: Record<string, unknown> = { createdAt: "desc" }) {
+  async findMany(
+    where: Record<string, unknown> = {},
+    orderBy: Record<string, unknown> = { createdAt: "desc" }
+  ) {
     return prisma.task.findMany({
       where: where as any,
       include: taskInclude,
@@ -37,15 +40,7 @@ export class TaskRepository {
     });
   }
 
-  async create(data: {
-    title: string;
-    desc?: string;
-    status?: any;
-    priority?: any;
-    tags?: string[];
-    dueDate?: Date | null;
-    assigneeId?: string | null;
-  }) {
+  async create(data: Record<string, unknown>) {
     return prisma.task.create({ data: data as any, include: taskInclude });
   }
 
@@ -73,13 +68,18 @@ export class TaskRepository {
     return prisma.task.groupBy({ by: ["priority"], _count: true });
   }
 
-  async upsertPrioritization(taskId: string, data: {
-    urgency: number;
-    importance: number;
-    value: number;
-    effort: number;
-    quadrant: any;
-  }) {
+  async groupByAssignee() {
+    return prisma.task.groupBy({
+      by: ["assigneeId"],
+      _count: true,
+      _sum: { estimatedHours: true },
+    });
+  }
+
+  async upsertPrioritization(
+    taskId: string,
+    data: { urgency: number; importance: number; value: number; effort: number; quadrant: any }
+  ) {
     return prisma.taskPrioritization.upsert({
       where: { taskId },
       create: { taskId, ...data },
@@ -108,7 +108,26 @@ export class TaskRepository {
   }
 
   async deleteDependencies(sourceTaskId: string, targetTaskId: string) {
-    return prisma.taskDependency.deleteMany({ where: { sourceTaskId, targetTaskId } });
+    return prisma.taskDependency.deleteMany({
+      where: { sourceTaskId, targetTaskId },
+    });
+  }
+
+  async deleteAllDependenciesOfSource(sourceTaskId: string) {
+    return prisma.taskDependency.deleteMany({ where: { sourceTaskId } });
+  }
+
+  async findTasksDueSoon(hours: number) {
+    const now = new Date();
+    const limit = new Date(Date.now() + hours * 60 * 60 * 1000);
+    return prisma.task.findMany({
+      where: {
+        dueDate: { gte: now, lte: limit },
+        status: { notIn: ["CONCLUIDO"] },
+        assigneeId: { not: null },
+      },
+      include: taskInclude,
+    });
   }
 }
 

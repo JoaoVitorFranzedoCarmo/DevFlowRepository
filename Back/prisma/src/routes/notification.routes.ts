@@ -9,8 +9,14 @@ const router = Router();
 
 router.use(authMiddleware);
 
-router.get("/", asyncHandler((req, res) => notificationController.findByUser(req, res)));
-router.put("/", validate(upsertNotificationSchema), asyncHandler((req, res) => notificationController.upsert(req, res)));
-router.put("/bulk", validate(bulkNotificationSchema), asyncHandler((req, res) => notificationController.bulkUpsert(req, res)));
+// Feed — notificações reais
+router.get("/feed", asyncHandler((req, res) => notificationController.feed(req, res)));
+router.patch("/:id/read", asyncHandler((req, res) => notificationController.markRead(req, res)));
+router.patch("/read-all", asyncHandler((req, res) => notificationController.markAllRead(req, res)));
+
+// Settings — preferências
+router.get("/", asyncHandler((req, res) => notificationController.findSettings(req, res)));
+router.put("/", validate(upsertNotificationSchema), asyncHandler((req, res) => notificationController.upsertSetting(req, res)));
+router.put("/bulk", validate(bulkNotificationSchema), asyncHandler((req, res) => notificationController.bulkUpsertSettings(req, res)));
 
 export default router;

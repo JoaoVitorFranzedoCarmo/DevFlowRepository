@@ -6,7 +6,10 @@
       "Bash(mkdir -p \"C:/Users/joaov/.claude/plugins/cache/ux-ui-mastery-marketplace/ux-ui-mastery/local\")",
       "Bash(cp -r \"C:/Users/joaov/OneDrive/Documentos/pluginsClaude/ux-ui-mastery/.\" \"C:/Users/joaov/.claude/plugins/cache/ux-ui-mastery-marketplace/ux-ui-mastery/local/\")",
       "Bash(grep -E \"\\\\.\\(css|scss|svg\\)$\")",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(npx prisma *)",
+      "Bash(npx tsc *)",
+      "Bash(npm install *)"
     ]
   }
 }
