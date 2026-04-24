@@ -113,16 +113,16 @@ export default function PriorizacaoPage() {
         <div className="text-slate-400 text-sm">Carregando tarefas...</div>
       ) : (
         <>
-          {activeView === "eisenhower" && <EisenhowerMatrix tasks={prioritizedTasks} onEdit={handleEdit} />}
+          {activeView === "eisenhower" && <EisenhowerMatrix tasks={tasks} onEdit={handleEdit} />}
           {activeView === "valueEffort" && <ValueEffortChart tasks={prioritizedTasks} onEdit={handleEdit} />}
           {activeView === "ranking" && <PriorityRanking tasks={prioritizedTasks} onEdit={handleEdit} />}
           {activeView === "dependencias" && <DependencyMap tasks={tasks} onEdit={handleEdit} />}
         </>
       )}
 
-      {tasks.length > 0 && prioritizedTasks.length === 0 && activeView !== "dependencias" && (
+      {tasks.length > 0 && prioritizedTasks.length === 0 && (activeView === "valueEffort" || activeView === "ranking") && (
         <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md text-amber-800 dark:text-amber-200 text-sm">
-          Nenhuma tarefa com priorização Eisenhower definida. Clique numa tarefa para abrir o modal e preencher a seção "Priorização".
+          Nenhuma tarefa com pontuação WSJF definida. Clique numa tarefa para abrir o modal e preencher a seção "Priorização".
         </div>
       )}
 

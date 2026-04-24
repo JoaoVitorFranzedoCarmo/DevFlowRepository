@@ -14,13 +14,12 @@ const PriorizacaoPage  = lazy(() => import("./components/PriorizacaoPage"));
 const DocumentacaoPage = lazy(() => import("./components/DocumentacaoPage"));
 const ConfigPage       = lazy(() => import("./components/ConfigPage"));
 
+const componentesTabs = new Set(["biblioteca", "licoes"]);
+
 function AppInner() {
   const { user, loading } = useAuth();
   const [authView, setAuthView] = useState("login"); // "login" | "register"
   const [sidebarItem, setSidebarItem] = useState("dashboard");
-  const [subItem, setSubItem] = useState("biblioteca");
-  const [compExpanded, setCompExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState("biblioteca");
 
   if (loading) {
     return (
@@ -51,25 +50,15 @@ function AppInner() {
       : <RegisterPage onGoLogin={() => setAuthView("login")} />;
   }
 
-  function handleSubItemChange(key) {
-    setSubItem(key);
-    if (key === "biblioteca") setActiveTab("biblioteca");
-    if (key === "licoes") setActiveTab("licoes");
-  }
-
   return (
-    <div className="flex h-screen font-['Inter',Arial,sans-serif] bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 overflow-hidden">
+    <div className="flex h-screen font-['Inter',Arial,sans-serif] bg-slate-100 text-slate-900 overflow-hidden">
       <Sidebar
         sidebarItem={sidebarItem}
         setSidebarItem={setSidebarItem}
-        subItem={subItem}
-        setSubItem={handleSubItemChange}
-        compExpanded={compExpanded}
-        setCompExpanded={setCompExpanded}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar sidebarItem={sidebarItem} subItem={subItem} />
+        <Topbar sidebarItem={sidebarItem} />
 
         <main id="main-content" className="flex-1 overflow-auto p-8">
           <Suspense fallback={
@@ -82,12 +71,8 @@ function AppInner() {
             </div>
           }>
             {sidebarItem === "dashboard" && <DashboardPage />}
-            {sidebarItem === "componentes" && (
-              <ComponentesPage
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                setSubItem={setSubItem}
-              />
+            {componentesTabs.has(sidebarItem) && (
+              <ComponentesPage activeTab={sidebarItem} />
             )}
             {sidebarItem === "kanban" && <KanbanPage />}
             {sidebarItem === "priorizacao" && <PriorizacaoPage />}

@@ -13,9 +13,19 @@ export function toDateInput(iso) {
   return `${y}-${m}-${day}`;
 }
 
+function quadrantFromPriority(priority) {
+  switch (priority) {
+    case "CRITICA": return "fazer";
+    case "ALTA":    return "agendar";
+    case "MEDIA":   return "delegar";
+    default:        return "eliminar";
+  }
+}
+
 export function mapTask(t) {
   const deps = (t.dependsOn || []).map((d) => d.targetTask).filter(Boolean);
   const p = t.prioritization || null;
+  const explicitQuadrant = p?.quadrant ? QUADRANT_KEY[p.quadrant] : null;
   return {
     id: t.id,
     title: t.title,
@@ -33,7 +43,7 @@ export function mapTask(t) {
     dependencyIds: deps.map((d) => d.id),
     prioritization: p,
     quadrant: p?.quadrant || null,
-    quadrantKey: p?.quadrant ? QUADRANT_KEY[p.quadrant] : null,
+    quadrantKey: explicitQuadrant ?? quadrantFromPriority(t.priority),
     urgency: p?.urgency ?? null,
     importance: p?.importance ?? null,
     value: p?.value ?? null,
