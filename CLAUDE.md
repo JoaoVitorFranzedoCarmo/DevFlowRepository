@@ -12,11 +12,16 @@ Monorepo com frontend React (Vite) e backend Node.js/Express/Prisma/TypeScript.
 ### Backend
 ```bash
 cd Back/prisma
-npm run dev          # servidor dev com hot reload
-npm run typecheck    # tsc --noEmit (zero erros exigido)
-npm run build        # compilação produção
-npm test             # jest
-npx prisma db push   # sincroniza schema com o banco
+npm run dev              # servidor dev com hot reload (ts-node-dev)
+npm run typecheck        # tsc --noEmit (zero erros exigido)
+npm run build            # compilação produção
+npm test                 # jest --runInBand --forceExit
+npm run test:watch       # jest em modo watch
+npm run db:push          # prisma db push — sincroniza schema sem migration
+npm run prisma:migrate   # prisma migrate dev — cria e aplica migration
+npm run prisma:seed      # prisma db seed
+npm run prisma:studio    # abre Prisma Studio na web
+npm run reset:db         # prisma migrate reset --force (DESTRUTIVO)
 ```
 
 ### Frontend
@@ -24,39 +29,83 @@ npx prisma db push   # sincroniza schema com o banco
 cd Front
 npm run dev          # vite dev server
 npm run build        # produção
+npm run preview      # preview do build de produção
 ```
 
 ## Arquitetura do Backend
 
 ```
-src/
-├── config/          # database.ts (Singleton), env.ts
-├── controllers/     # handlers HTTP — leem req, chamam service, escrevem res
-├── services/        # lógica de negócio — chamam repositories
-├── repositories/    # acesso a dados — todas as chamadas Prisma
-├── strategies/      # algoritmos intercambiáveis (Strategy Pattern)
-├── events/          # EventEmitter singleton (Observer Pattern)
-├── routes/          # definição de rotas Express
-├── middlewares/     # auth, error, role, rbac (dinâmico), validate
-├── validators/      # schemas Zod por domínio
-└── utils/           # asyncHandler, errors, ownership
+Back/prisma/src/
+├── app.ts                # Express setup: CORS, rotas, errorMiddleware
+├── server.ts             # Bootstrap: seed RBAC, registerListeners, sobe servidor
+├── config/               # database.ts (Singleton PrismaClient), env.ts (vars tipadas)
+├── controllers/          # handlers HTTP — leem req, chamam service, escrevem res
+│                         # auth, task, document, component, lesson, template,
+│                         # integration, notification, rbac, user, system-config
+├── services/             # lógica de negócio — orquestra repositories e eventos
+│                         # (mesmos 11 domínios)
+├── repositories/         # acesso a dados — toda chamada Prisma passa por aqui
+│                         # task, document, component, user, notification,
+│                         # role-permission, refresh-token, system-config,
+│                         # lesson, template, integration
+├── strategies/
+│   ├── prioritization.strategy.ts      # WSJFStrategy, EisenhowerStrategy
+│   └── document-generation.strategy.ts # HtmlGenerationStrategy, PdfGenerationStrategy,
+│                                        # MarkdownGenerationStrategy
+├── events/
+│   └── event-emitter.ts  # appEmitter singleton (Observer Pattern)
+├── routes/               # 12 arquivos de rotas + index.ts (agrega sob /api)
+├── middlewares/          # auth, error, role (legado + requirePermission dinâmico), validate
+├── validators/           # schemas Zod: auth, task, document, component, lesson,
+│                         # template, integration, notification, user
+└── utils/                # asyncHandler, errors (AppError hierarchy), ownership
 ```
 
 ## Arquitetura do Frontend
 
 ```
 src/
-├── context/         # AuthContext, ThemeContext (dark/light + localStorage)
-├── components/
-│   ├── config/           # ProfileSettings, TeamSettings, RolePermissions (GERENTE)
-│   ├── dashboard/        # SummaryCards (custo real), CostBreakdown, charts
-│   ├── kanban/           # KanbanCard, KanbanColumn, NewTaskModal (Priorização embutida)
-│   ├── priorizacao/      # EisenhowerMatrix, PriorityRanking, ValueEffortChart
-│   ├── componentes/      # BibliotecaTab, ComponentModal, ComponentDetail (syntax highlight)
-│   ├── documentacao/     # DocList, AutoGenPanel (sourceCode→HTML), VersionHistory (restore)
-│   └── NotificationBell.jsx  # sino com polling 30s
-├── services/        # api.js (axios + JWT refresh)
-└── utils/           # taskMapper (mapeia /api/tasks para Kanban + Priorização)
+├── App.jsx / main.jsx
+├── index.css
+├── context/
+│   ├── AuthContext.jsx       # JWT, login, logout, refresh token
+│   └── ThemeContext.jsx      # dark/light + localStorage + matchMedia fallback
+├── pages/
+│   ├── LoginPage.jsx
+│   └── RegisterPage.jsx
+├── components/               # componentes de página (top-level)
+│   ├── DashboardPage.jsx
+│   ├── KanbanPage.jsx
+│   ├── PriorizacaoPage.jsx
+│   ├── DocumentacaoPage.jsx
+│   ├── ComponentesPage.jsx
+│   ├── ConfigPage.jsx
+│   ├── Sidebar.jsx
+│   ├── Topbar.jsx            # toggle de tema + NotificationBell
+│   ├── NotificationBell.jsx  # polling 30s, badge unreadCount
+│   ├── config/               # ProfileSettings, TeamSettings, RolePermissions (GERENTE only)
+│   ├── dashboard/            # SummaryCards, CostBreakdown, BurndownChart, TasksChart,
+│   │                         # TaskDistributionChart, SprintHeader, TopComponents
+│   ├── kanban/               # KanbanCard, KanbanColumn, KanbanHeader, NewTaskModal
+│   ├── priorizacao/          # EisenhowerMatrix, PriorityRanking, ValueEffortChart,
+│   │                         # DependencyMap, PrioritySummary
+│   ├── componentes/          # BibliotecaTab, LicoesTab, ComponentCard, ComponentModal,
+│   │                         # ComponentDetail (syntax highlight), StarRating, StatsBar
+│   └── documentacao/         # DocList, DocSummary, AutoGenPanel (sourceCode→HTML),
+│                              # VersionHistory (restore), NewDocModal, TemplateGrid
+├── icons/
+│   └── SidebarIcons.jsx
+├── services/
+│   └── api.js                # axios + JWT refresh interceptor
+├── data/                     # dados estáticos/mock por domínio
+│   ├── mockData.js
+│   ├── dashboardData.js
+│   ├── kanbanData.js
+│   ├── priorizacaoData.js
+│   ├── documentacaoData.js
+│   └── configData.js
+└── utils/
+    └── taskMapper.js         # mapeia /api/tasks → quadrantKey + score (Kanban + Priorização)
 ```
 
 ## Design Patterns Implementados
@@ -119,6 +168,29 @@ src/
 ### Notificações
 - `NotificationBell` em Topbar faz polling a cada 30s em `/notifications/feed`
 - Badge com `unreadCount`, dropdown marca como lida ao clicar
+
+## Modelos Prisma
+
+**Enums:** `Role` (GERENTE, LIDER, DESENVOLVEDOR, QA) · `TaskStatus` (BACKLOG, AFAZER, PROGRESSO, REVISAO, CONCLUIDO) · `TaskPriority` (CRITICA, ALTA, MEDIA, BAIXA) · `DocType` (OPENAPI, TECNICA, MANUAL) · `DocFormat` (HTML, PDF, MARKDOWN) · `DocStatus` (ATUALIZADO, DESATUALIZADO, RASCUNHO) · `Quadrant` (FAZER, AGENDAR, DELEGAR, ELIMINAR)
+
+| Modelo | Propósito |
+|---|---|
+| `User` | Usuário com role fixa e vínculo opcional a `CustomRole` |
+| `RefreshToken` | Tokens de refresh com expiração |
+| `Task` | Tarefa do Kanban (status, prioridade, assignee, estimatedHours) |
+| `TaskPrioritization` | Dados WSJF/Eisenhower 1:1 com Task |
+| `TaskDependency` | Muitos-para-muitos entre tarefas |
+| `Document` | Documento técnico com versionamento e sourceCode |
+| `DocumentVersion` | Snapshot imutável por versão |
+| `Component` | Componente reutilizável com codeSnippet, rating, uses |
+| `Lesson` | Lição aprendida por projeto |
+| `Template` | Template de documento com contador de uso |
+| `Integration` | Integração externa por usuário (com status toggle) |
+| `Notification` | Notificação persistida (index em `[userId, read]`) |
+| `NotificationSetting` | Preferências por evento e canal (email/push) |
+| `CustomRole` | Cargo personalizado criado pelo Gerente |
+| `RolePermission` | roleName × module × action × allowed |
+| `SystemConfig` | Configurações chave-valor (hourlyRate, tema padrão) |
 
 ## Regras
 

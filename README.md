@@ -1,38 +1,28 @@
-# DevFlow 🚀
+# DevFlow
 
-> Sistema de Gestão de Equipes de Desenvolvimento
-
-Uma plataforma completa para gerenciar componentes, tarefas, documentação e lições aprendidas de equipes de desenvolvimento de software.
+Sistema de gestão de equipes de desenvolvimento — Kanban, priorização, documentação, biblioteca de componentes e RBAC dinâmico.
 
 ---
 
-## 📌 Comece Aqui!
+## Início Rápido
 
-### ⚡ Startup Rápido
-
-**Opção 1: Clique duas vezes**
-```
-start-devflow.bat
-```
-
-**Opção 2: Terminal (recomendado)**
 ```bash
-# Terminal 1
+# Terminal 1 — sobe backend + banco
 cd Back\prisma
 docker compose up --build
 
-# Terminal 2 (depois que backend iniciar)
-cd Back\prisma
+# Terminal 2 — seed (após backend iniciar)
 docker compose exec api npm run prisma:seed
 
-# Terminal 3
+# Terminal 3 — frontend
+cd Front
 npm install
 npm run dev
 ```
 
 Acesse: **http://localhost:5173**
 
-### 🔐 Credenciais Padrão
+Credenciais padrão:
 ```
 Email: joao.vitor@pucpr.edu.br
 Senha: 123456
@@ -40,132 +30,61 @@ Senha: 123456
 
 ---
 
-## 📚 Documentação
+## Stack
 
-| Documento | Descrição |
-|-----------|-----------|
-| [**QUICK-START.md**](./QUICK-START.md) | 3 formas de rodar o projeto |
-| [**SETUP.md**](./SETUP.md) | Guia completo de instalação |
-| [**copilot-instructions.md**](./.github/copilot-instructions.md) | Instruções para IA assistentes |
-| [**Front/README.md**](./Front/README.md) | Arquitetura do Frontend |
-| [**Back/prisma/README.md**](./Back/prisma/README.md) | Arquitetura do Backend + API |
-
----
-
-## 🎯 O que é DevFlow?
-
-DevFlow é um sistema de gestão de equipes que oferece:
-
-### 📦 **Biblioteca de Componentes**
-- Catálogo centralizado de componentes reutilizáveis
-- Categorias, tags e busca avançada
-- Estatísticas de uso e avaliações
-
-### 📋 **Kanban de Tarefas**
-- Visualização por status: Backlog → Afazer → Progresso → Revisão → Concluído
-- Priorização com matriz de urgência/importância
-- Atribuição e datas de entrega
-
-### 📚 **Lições Aprendidas**
-- Registrar aprendizados do projeto
-- Compartilhar conhecimento entre equipes
-
-### 📄 **Documentação**
-- Gestão de versões de documentos
-- Rastreamento de atualização
-
-### 🔗 **Integrações**
-- Configurar integrações externas
-- Notificações personalizadas
+| Camada | Tecnologias |
+|--------|-------------|
+| Frontend | React 18, Vite, Tailwind CSS, Recharts |
+| Backend | Node.js, Express, TypeScript, Prisma ORM |
+| Banco | PostgreSQL (Docker) |
+| Auth | JWT access + refresh tokens |
+| Validação | Zod |
 
 ---
 
-## 🏗️ Arquitetura
+## Funcionalidades
 
-### Frontend
-- **Framework:** React 18
-- **Build:** Vite
-- **Styling:** Tailwind CSS
-- **Charts:** Recharts
-- **Autenticação:** JWT (localStorage)
-
-### Backend
-- **Runtime:** Node.js
-- **Framework:** Express
-- **Linguagem:** TypeScript
-- **Banco:** PostgreSQL
-- **ORM:** Prisma
-- **Autenticação:** JWT (access + refresh tokens)
-- **Validação:** Zod
-- **Containerização:** Docker
+- **Kanban** — status BACKLOG → AFAZER → PROGRESSO → REVISAO → CONCLUIDO
+- **Priorização** — matriz Eisenhower, ranking WSJF, mapa de dependências
+- **Dashboard** — custo estimado real, burndown, distribuição de tarefas
+- **Documentação** — geração HTML/PDF/Markdown via sourceCode, versionamento com restore
+- **Componentes** — biblioteca com syntax highlight, rating e stats de uso
+- **RBAC dinâmico** — permissões por módulo × ação, cargos customizados pelo Gerente
+- **Notificações** — polling 30s, badge de não lidas, eventos de tarefa via Observer Pattern
+- **Tema claro/escuro** — persiste em localStorage
 
 ---
 
-## 🚀 Scripts Disponíveis
-
-### Frontend
-```bash
-npm run dev       # Desenvolvimento com hot reload
-npm run build     # Build para produção
-npm run preview   # Preview da build
-```
-
-### Backend
-```bash
-cd Back\prisma
-
-npm run dev              # Desenvolvimento
-npm run build            # Compilação TypeScript
-npm start                # Produção
-npm run prisma:migrate   # Migrations do banco
-npm run prisma:seed      # Popular dados iniciais
-npm run prisma:studio    # UI do banco de dados
-```
-
----
-
-## 🔧 Estrutura do Projeto
+## Estrutura
 
 ```
-DevFlowRepository/
-├── Front/                          # Frontend React
-│   ├── src/
-│   │   ├── App.jsx
-│   │   ├── components/
-│   │   ├── data/
-│   │   ├── icons/
-│   │   └── main.jsx
-│   ├── package.json
-│   ├── vite.config.js
-│   └── tailwind.config.js
+devflow/
+├── Front/                  # React + Vite
+│   └── src/
+│       ├── components/     # páginas e subcomponentes por domínio
+│       ├── context/        # AuthContext, ThemeContext
+│       ├── services/       # api.js (axios + refresh interceptor)
+│       ├── utils/          # taskMapper.js
+│       └── data/           # dados estáticos por domínio
 │
-├── Back/prisma/                    # Backend Express + TypeScript
-│   ├── src/
-│   │   ├── controllers/
-│   │   ├── routes/
-│   │   ├── services/
-│   │   ├── middlewares/
-│   │   ├── validators/
-│   │   └── server.ts
-│   ├── prisma/
-│   │   ├── schema.prisma
-│   │   └── seed.ts
-│   ├── Dockerfile
-│   ├── docker-compose.yml
-│   └── package.json
-│
-├── .github/
-│   └── copilot-instructions.md     # Para assistentes IA
-│
-├── QUICK-START.md                  # ⭐ Comece aqui
-├── SETUP.md                        # Instalação completa
-├── start-devflow.bat               # Script automático
-└── package.json                    # Frontend root
+└── Back/prisma/            # Express + TypeScript
+    ├── src/
+    │   ├── controllers/    # camada HTTP
+    │   ├── services/       # lógica de negócio
+    │   ├── repositories/   # toda chamada Prisma
+    │   ├── strategies/     # priorização + geração de docs
+    │   ├── events/         # Observer Pattern (appEmitter)
+    │   ├── middlewares/    # auth, RBAC, validate, error
+    │   ├── routes/         # 12 domínios sob /api
+    │   └── validators/     # schemas Zod
+    └── prisma/
+        ├── schema.prisma
+        └── seed.ts
 ```
 
 ---
 
-## 📡 URLs Padrão
+## URLs
 
 | Serviço | URL |
 |---------|-----|
@@ -175,28 +94,9 @@ DevFlowRepository/
 
 ---
 
-## 🔓 Seed Data
+## Variáveis de Ambiente
 
-Após executar o seed, você tem acesso a:
-
-### Usuários
-- **João Vitor Franze** (GERENTE) - joao.vitor@pucpr.edu.br
-- **Leander Reblin Hallu** (DESENVOLVEDOR) - leander.hallu@pucpr.edu.br
-
-Senha padrão: `123456`
-
-### Dados de Exemplo
-- Componentes com categorias e tags
-- Tarefas em diferentes status
-- Lições aprendidas
-- Documentos e versões
-- Templates
-
----
-
-## ⚙️ Variáveis de Ambiente
-
-### Backend (Back/prisma/.env)
+`Back/prisma/.env`:
 ```env
 PORT=3001
 NODE_ENV=development
@@ -210,28 +110,15 @@ CORS_ORIGIN=http://localhost:5173
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
-### Docker não funciona
+**Porta em uso:**
 ```bash
-# Verifique Docker Desktop
-docker ps
-
-# Se não funcionar, reinicie
-docker-compose down
-docker compose up --build
-```
-
-### Porta já em uso
-```bash
-# Encontrar processo
 netstat -ano | findstr :3001
-
-# Matar processo
 taskkill /PID <PID> /F
 ```
 
-### Banco de dados corrompido
+**Banco corrompido:**
 ```bash
 cd Back\prisma
 docker compose down -v
@@ -241,42 +128,6 @@ docker compose exec api npm run prisma:seed
 
 ---
 
-## 📖 Próximas Etapas
+## Desenvolvedores
 
-1. ✅ Clonar/abrir este repositório
-2. 🚀 Seguir [QUICK-START.md](./QUICK-START.md)
-3. 🔐 Fazer login em http://localhost:5173
-4. 🎨 Explorar a interface
-5. 💻 Começar a desenvolver!
-
----
-
-## 📝 Convenções de Código
-
-Veja [copilot-instructions.md](./.github/copilot-instructions.md) para:
-- Padrões de arquitetura
-- Padrões de API
-- Autenticação e autorização
-- Validação e erro handling
-- Estrutura de banco de dados
-
----
-
-## 🤝 Contribuindo
-
-1. Crie uma branch para sua feature (`git checkout -b feature/MinhaFeature`)
-2. Commit suas mudanças (`git commit -m 'Adiciona MinhaFeature'`)
-3. Push para a branch (`git push origin feature/MinhaFeature`)
-4. Abra um Pull Request
-
----
-
-## 📄 Licença
-
-Este projeto é privado.
-
----
-
-**Desenvolvido com ❤️ por João Vitor Franze**
-
-Para dúvidas, veja [QUICK-START.md](./QUICK-START.md) 🚀
+João Franze · João Marcelo · Fernando · Leander
