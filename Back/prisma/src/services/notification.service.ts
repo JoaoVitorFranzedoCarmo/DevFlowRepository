@@ -39,11 +39,11 @@ export class NotificationService {
   }
 
   private async handleTaskStatusChanged(event: {
-    taskId: string;
+    taskId: number;
     taskTitle?: string;
     oldStatus: string;
     newStatus: string;
-    assigneeId?: string | null;
+    assigneeId?: number | null;
   }): Promise<void> {
     if (!event.assigneeId) return;
     const title = event.taskTitle || "tarefa";
@@ -59,9 +59,9 @@ export class NotificationService {
   }
 
   private async handleTaskAssigned(event: {
-    taskId: string;
+    taskId: number;
     taskTitle?: string;
-    assigneeId: string;
+    assigneeId: number;
   }): Promise<void> {
     if (!event.assigneeId) return;
     await this.repo.create({
@@ -73,9 +73,9 @@ export class NotificationService {
   }
 
   private async handleTaskDueSoon(event: {
-    taskId: string;
+    taskId: number;
     taskTitle?: string;
-    assigneeId: string;
+    assigneeId: number;
     dueDate?: Date | null;
   }): Promise<void> {
     if (!event.assigneeId) return;
@@ -88,13 +88,13 @@ export class NotificationService {
     });
   }
 
-  async feed(userId: string) {
+  async feed(userId: number) {
     const items = await this.repo.findByUser(userId);
     const unreadCount = await this.repo.countUnread(userId);
     return { items, unreadCount };
   }
 
-  async markRead(userId: string, id: string) {
+  async markRead(userId: number, id: number) {
     const n = await this.repo.findById(id);
     if (!n || n.userId !== userId) {
       throw new Error("Notificação não encontrada");
@@ -102,21 +102,20 @@ export class NotificationService {
     return this.repo.markRead(id);
   }
 
-  async markAllRead(userId: string) {
+  async markAllRead(userId: number) {
     return this.repo.markAllRead(userId);
   }
 
-  // Settings (para back-compat)
-  async findSettings(userId: string) {
+  async findSettings(userId: number) {
     return this.repo.findSettingsByUser(userId);
   }
 
-  async upsertSetting(userId: string, data: { eventKey: string; email: boolean; push: boolean }) {
+  async upsertSetting(userId: number, data: { eventKey: string; email: boolean; push: boolean }) {
     return this.repo.upsertSetting(userId, data);
   }
 
   async bulkUpsertSettings(
-    userId: string,
+    userId: number,
     settings: Array<{ eventKey: string; email: boolean; push: boolean }>
   ) {
     const results = await Promise.all(settings.map((s) => this.repo.upsertSetting(userId, s)));

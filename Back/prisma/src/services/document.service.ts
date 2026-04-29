@@ -27,7 +27,7 @@ export class DocumentService {
     return this.repo.findMany(where);
   }
 
-  async findById(id: string) {
+  async findById(id: number) {
     const doc = await this.repo.findUnique(id);
     if (!doc) throw new NotFoundError("Documento");
     return doc;
@@ -43,7 +43,7 @@ export class DocumentService {
     pages?: number;
     sourceCode?: string;
     content?: string;
-    authorId: string;
+    authorId: number;
   }) {
     return this.repo.create({
       title: data.title,
@@ -59,7 +59,7 @@ export class DocumentService {
     });
   }
 
-  async update(id: string, data: Partial<{
+  async update(id: number, data: Partial<{
     title: string;
     type: string;
     format: string;
@@ -74,15 +74,15 @@ export class DocumentService {
     return this.repo.update(id, data as Record<string, unknown>);
   }
 
-  async delete(id: string) {
+  async delete(id: number) {
     await this.findById(id);
     await this.repo.delete(id);
   }
 
   async addVersion(
-    documentId: string,
+    documentId: number,
     data: { version: string; commit: string; changes: string; author: string; content?: string },
-    user?: { userId: string; role: string }
+    user?: { userId: number; role: string }
   ) {
     const doc = await this.findById(documentId);
     if (user && doc.authorId !== user.userId && user.role !== "GERENTE") {
@@ -106,12 +106,12 @@ export class DocumentService {
     return this.repo.findAllVersions();
   }
 
-  async getDocumentVersions(documentId: string) {
+  async getDocumentVersions(documentId: number) {
     await this.findById(documentId);
     return this.repo.findVersionsByDocument(documentId);
   }
 
-  async restoreVersion(documentId: string, versionId: string, user?: { userId: string; role: string }) {
+  async restoreVersion(documentId: number, versionId: number, user?: { userId: number; role: string }) {
     const doc = await this.findById(documentId);
     if (user && doc.authorId !== user.userId && user.role !== "GERENTE") {
       throw new ForbiddenError("Permissão negada para restaurar versão");
@@ -127,7 +127,7 @@ export class DocumentService {
       version: `${doc.version}-pre-restore`,
       commit: "",
       changes: `Backup antes de restaurar para ${version.version}`,
-      author: user?.userId || doc.author?.name || "Sistema",
+      author: doc.author?.name ?? "Sistema",
       content: doc.content,
     });
 
@@ -156,8 +156,7 @@ export class DocumentService {
     };
   }
 
-  // Gera conteúdo dinâmico a partir de sourceCode, usando Strategy
-  async generateContent(id: string, formatOverride?: string, customSource?: string): Promise<string> {
+  async generateContent(id: number, formatOverride?: string, customSource?: string): Promise<string> {
     const doc = await this.findById(id);
     const targetFormat = (formatOverride ?? doc.format).toUpperCase();
 
@@ -177,11 +176,10 @@ export class DocumentService {
     });
   }
 
-  // Gera e salva o conteúdo no documento + registra versão
   async generateAndSave(
-    id: string,
+    id: number,
     opts: { sourceCode?: string; format?: string; commit?: string; changes?: string },
-    user?: { userId: string; role: string; name?: string }
+    user?: { userId: number; role: string; name?: string }
   ) {
     const doc = await this.findById(id);
     if (user && doc.authorId !== user.userId && user.role !== "GERENTE") {

@@ -15,7 +15,7 @@ export class ComponentRepository {
     });
   }
 
-  async findUnique(id: string) {
+  async findUnique(id: number) {
     return prisma.component.findUnique({
       where: { id },
       include: componentInclude,
@@ -29,12 +29,12 @@ export class ComponentRepository {
     lang: string;
     tags?: string[];
     codeSnippet?: string;
-    authorId: string;
+    authorId: number;
   }) {
     return prisma.component.create({ data, include: componentInclude });
   }
 
-  async update(id: string, data: Record<string, unknown>) {
+  async update(id: number, data: Record<string, unknown>) {
     return prisma.component.update({
       where: { id },
       data: data as any,
@@ -42,7 +42,7 @@ export class ComponentRepository {
     });
   }
 
-  async delete(id: string) {
+  async delete(id: number) {
     return prisma.component.delete({ where: { id } });
   }
 

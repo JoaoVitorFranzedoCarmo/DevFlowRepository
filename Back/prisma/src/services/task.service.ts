@@ -25,7 +25,7 @@ export class TaskService {
   async findAll(filters?: {
     status?: string;
     priority?: string;
-    assigneeId?: string;
+    assigneeId?: number;
     search?: string;
   }) {
     const where: Record<string, unknown> = {};
@@ -41,7 +41,7 @@ export class TaskService {
     return this.repo.findMany(where);
   }
 
-  async findById(id: string) {
+  async findById(id: number) {
     const task = await this.repo.findUnique(id);
     if (!task) throw new NotFoundError("Tarefa");
     return task;
@@ -67,7 +67,7 @@ export class TaskService {
     priority?: string;
     tags?: string[];
     dueDate?: string | null;
-    assigneeId?: string | null;
+    assigneeId?: number | null;
     estimatedHours?: number;
   }) {
     const task = await this.repo.create({
@@ -91,14 +91,14 @@ export class TaskService {
     return task;
   }
 
-  async update(id: string, data: Partial<{
+  async update(id: number, data: Partial<{
     title: string;
     desc: string;
     status: string;
     priority: string;
     tags: string[];
     dueDate: string | null;
-    assigneeId: string | null;
+    assigneeId: number | null;
     estimatedHours: number;
   }>) {
     const current = await this.findById(id);
@@ -120,7 +120,7 @@ export class TaskService {
     return updated;
   }
 
-  async moveTask(id: string, status: string) {
+  async moveTask(id: number, status: string) {
     const task = await this.findById(id);
     const oldStatus = task.status;
     const updated = await this.repo.update(id, { status: status as any });
@@ -136,12 +136,12 @@ export class TaskService {
     return updated;
   }
 
-  async delete(id: string) {
+  async delete(id: number) {
     await this.findById(id);
     await this.repo.delete(id);
   }
 
-  async setPrioritization(taskId: string, data: {
+  async setPrioritization(taskId: number, data: {
     urgency: number;
     importance: number;
     value: number;
@@ -163,7 +163,7 @@ export class TaskService {
       .sort((a, b) => b.score - a.score);
   }
 
-  async addDependency(sourceTaskId: string, targetTaskId: string) {
+  async addDependency(sourceTaskId: number, targetTaskId: number) {
     if (sourceTaskId === targetTaskId) {
       throw new BadRequestError("Uma tarefa não pode depender de si mesma");
     }
@@ -178,11 +178,11 @@ export class TaskService {
     return this.repo.createDependency(sourceTaskId, targetTaskId);
   }
 
-  async removeDependency(sourceTaskId: string, targetTaskId: string) {
+  async removeDependency(sourceTaskId: number, targetTaskId: number) {
     await this.repo.deleteDependencies(sourceTaskId, targetTaskId);
   }
 
-  async setDependencies(sourceTaskId: string, targetTaskIds: string[]) {
+  async setDependencies(sourceTaskId: number, targetTaskIds: number[]) {
     await this.findById(sourceTaskId);
     await this.repo.deleteAllDependenciesOfSource(sourceTaskId);
     const created = [];
@@ -231,7 +231,7 @@ export class TaskService {
 
     let totalCost = 0;
     let totalHours = 0;
-    const byAssignee = new Map<string, { name: string; cost: number; hours: number }>();
+    const byAssignee = new Map<number, { name: string; cost: number; hours: number }>();
     const bySprint = new Map<string, { name: string; cost: number; hours: number }>();
 
     const items = tasks.map((t: any) => {

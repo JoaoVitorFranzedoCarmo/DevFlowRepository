@@ -4,7 +4,7 @@ import { env } from "../config/env";
 import { UnauthorizedError } from "../utils/errors";
 
 export interface JwtPayload {
-  userId: string;
+  userId: number;
   role: string;
 }
 

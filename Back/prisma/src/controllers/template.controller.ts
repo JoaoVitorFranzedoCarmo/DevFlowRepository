@@ -8,7 +8,7 @@ export class TemplateController {
   }
 
   async findById(req: Request, res: Response) {
-    const template = await templateService.findById(req.params.id);
+    const template = await templateService.findById(parseInt(req.params.id));
     res.json(template);
   }
 
@@ -18,7 +18,7 @@ export class TemplateController {
   }
 
   async update(req: Request, res: Response) {
-    const template = await templateService.update(req.params.id, req.body, {
+    const template = await templateService.update(parseInt(req.params.id), req.body, {
       userId: req.user!.userId,
       role: req.user!.role,
     });
@@ -26,7 +26,7 @@ export class TemplateController {
   }
 
   async delete(req: Request, res: Response) {
-    await templateService.delete(req.params.id, {
+    await templateService.delete(parseInt(req.params.id), {
       userId: req.user!.userId,
       role: req.user!.role,
     });
@@ -34,7 +34,7 @@ export class TemplateController {
   }
 
   async incrementUses(req: Request, res: Response) {
-    const template = await templateService.incrementUses(req.params.id);
+    const template = await templateService.incrementUses(parseInt(req.params.id));
     res.json(template);
   }
 }

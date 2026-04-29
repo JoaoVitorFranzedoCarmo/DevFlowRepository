@@ -8,7 +8,7 @@ export class LessonController {
   }
 
   async findById(req: Request, res: Response) {
-    const lesson = await lessonService.findById(req.params.id);
+    const lesson = await lessonService.findById(parseInt(req.params.id));
     res.json(lesson);
   }
 
@@ -21,12 +21,12 @@ export class LessonController {
   }
 
   async update(req: Request, res: Response) {
-    const lesson = await lessonService.update(req.params.id, req.body);
+    const lesson = await lessonService.update(parseInt(req.params.id), req.body);
     res.json(lesson);
   }
 
   async delete(req: Request, res: Response) {
-    await lessonService.delete(req.params.id);
+    await lessonService.delete(parseInt(req.params.id));
     res.status(204).send();
   }
 }

@@ -13,7 +13,7 @@ export class ComponentController {
   }
 
   async findById(req: Request, res: Response) {
-    const component = await componentService.findById(req.params.id);
+    const component = await componentService.findById(parseInt(req.params.id));
     res.json(component);
   }
 
@@ -26,12 +26,12 @@ export class ComponentController {
   }
 
   async update(req: Request, res: Response) {
-    const component = await componentService.update(req.params.id, req.body, { userId: req.user!.userId, role: req.user!.role });
+    const component = await componentService.update(parseInt(req.params.id), req.body, { userId: req.user!.userId, role: req.user!.role });
     res.json(component);
   }
 
   async delete(req: Request, res: Response) {
-    await componentService.delete(req.params.id, { userId: req.user!.userId, role: req.user!.role });
+    await componentService.delete(parseInt(req.params.id), { userId: req.user!.userId, role: req.user!.role });
     res.status(204).send();
   }
 

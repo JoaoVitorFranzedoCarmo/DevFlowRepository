@@ -2,14 +2,13 @@ import { Request, Response } from "express";
 import { notificationService } from "../services/notification.service";
 
 export class NotificationController {
-  // Feed de notificações reais
   async feed(req: Request, res: Response) {
     const feed = await notificationService.feed(req.user!.userId);
     res.json(feed);
   }
 
   async markRead(req: Request, res: Response) {
-    const result = await notificationService.markRead(req.user!.userId, req.params.id);
+    const result = await notificationService.markRead(req.user!.userId, parseInt(req.params.id));
     res.json(result);
   }
 
@@ -18,7 +17,6 @@ export class NotificationController {
     res.json(result);
   }
 
-  // Settings (preferências de notificação por usuário)
   async findSettings(req: Request, res: Response) {
     const settings = await notificationService.findSettings(req.user!.userId);
     res.json(settings);

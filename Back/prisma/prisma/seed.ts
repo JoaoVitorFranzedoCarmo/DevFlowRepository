@@ -281,7 +281,7 @@ async function main() {
   console.log("✅ Tarefas criadas");
 
   // Task Prioritizations
-  const taskMap: Record<string, string> = {};
+  const taskMap: Record<string, number> = {};
   tasks.forEach((t) => { taskMap[t.title] = t.id; });
 
   await Promise.all([

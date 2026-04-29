@@ -13,18 +13,18 @@ export class LessonRepository {
     });
   }
 
-  async findUnique(id: string) {
+  async findUnique(id: number) {
     return prisma.lesson.findUnique({
       where: { id },
       include: lessonInclude,
     });
   }
 
-  async create(data: { title: string; project: string; desc: string; authorId: string }) {
+  async create(data: { title: string; project: string; desc: string; authorId: number }) {
     return prisma.lesson.create({ data, include: lessonInclude });
   }
 
-  async update(id: string, data: Record<string, unknown>) {
+  async update(id: number, data: Record<string, unknown>) {
     return prisma.lesson.update({
       where: { id },
       data: data as any,
@@ -32,7 +32,7 @@ export class LessonRepository {
     });
   }
 
-  async delete(id: string) {
+  async delete(id: number) {
     return prisma.lesson.delete({ where: { id } });
   }
 }

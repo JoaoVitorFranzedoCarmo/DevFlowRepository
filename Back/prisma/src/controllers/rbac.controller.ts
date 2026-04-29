@@ -39,7 +39,7 @@ export class RbacController {
   }
 
   async deleteRole(req: Request, res: Response) {
-    await rbacService.deleteRole(req.params.id);
+    await rbacService.deleteRole(parseInt(req.params.id));
     res.status(204).send();
   }
 }

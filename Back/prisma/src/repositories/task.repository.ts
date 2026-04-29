@@ -33,7 +33,7 @@ export class TaskRepository {
     });
   }
 
-  async findUnique(id: string) {
+  async findUnique(id: number) {
     return prisma.task.findUnique({
       where: { id },
       include: taskInclude,
@@ -44,7 +44,7 @@ export class TaskRepository {
     return prisma.task.create({ data: data as any, include: taskInclude });
   }
 
-  async update(id: string, data: Record<string, unknown>) {
+  async update(id: number, data: Record<string, unknown>) {
     return prisma.task.update({
       where: { id },
       data: data as any,
@@ -52,7 +52,7 @@ export class TaskRepository {
     });
   }
 
-  async delete(id: string) {
+  async delete(id: number) {
     return prisma.task.delete({ where: { id } });
   }
 
@@ -77,7 +77,7 @@ export class TaskRepository {
   }
 
   async upsertPrioritization(
-    taskId: string,
+    taskId: number,
     data: { urgency: number; importance: number; value: number; effort: number; quadrant: any }
   ) {
     return prisma.taskPrioritization.upsert({
@@ -94,11 +94,11 @@ export class TaskRepository {
     });
   }
 
-  async findDependencies(sourceTaskId: string) {
+  async findDependencies(sourceTaskId: number) {
     return prisma.taskDependency.findMany({ where: { sourceTaskId } });
   }
 
-  async createDependency(sourceTaskId: string, targetTaskId: string) {
+  async createDependency(sourceTaskId: number, targetTaskId: number) {
     return prisma.taskDependency.create({
       data: { sourceTaskId, targetTaskId },
       include: {
@@ -107,13 +107,13 @@ export class TaskRepository {
     });
   }
 
-  async deleteDependencies(sourceTaskId: string, targetTaskId: string) {
+  async deleteDependencies(sourceTaskId: number, targetTaskId: number) {
     return prisma.taskDependency.deleteMany({
       where: { sourceTaskId, targetTaskId },
     });
   }
 
-  async deleteAllDependenciesOfSource(sourceTaskId: string) {
+  async deleteAllDependenciesOfSource(sourceTaskId: number) {
     return prisma.taskDependency.deleteMany({ where: { sourceTaskId } });
   }
 

@@ -5,7 +5,7 @@ export class TemplateRepository {
     return prisma.template.findMany({ orderBy: { uses: "desc" } });
   }
 
-  async findUnique(id: string) {
+  async findUnique(id: number) {
     return prisma.template.findUnique({ where: { id } });
   }
 
@@ -13,18 +13,18 @@ export class TemplateRepository {
     return prisma.template.create({ data });
   }
 
-  async update(id: string, data: Record<string, unknown>) {
+  async update(id: number, data: Record<string, unknown>) {
     return prisma.template.update({
       where: { id },
       data: data as any,
     });
   }
 
-  async delete(id: string) {
+  async delete(id: number) {
     return prisma.template.delete({ where: { id } });
   }
 
-  async incrementUses(id: string) {
+  async incrementUses(id: number) {
     return prisma.template.update({
       where: { id },
       data: { uses: { increment: 1 } },

@@ -7,7 +7,7 @@ export const createTaskSchema = z.object({
   priority: z.enum(["CRITICA", "ALTA", "MEDIA", "BAIXA"]).optional(),
   tags: z.array(z.string()).optional().default([]),
   dueDate: z.string().datetime().nullable().optional(),
-  assigneeId: z.string().uuid().nullable().optional(),
+  assigneeId: z.number().int().positive().nullable().optional(),
   estimatedHours: z.number().min(0).max(10000).optional(),
 });
 
@@ -18,7 +18,7 @@ export const updateTaskSchema = z.object({
   priority: z.enum(["CRITICA", "ALTA", "MEDIA", "BAIXA"]).optional(),
   tags: z.array(z.string()).optional(),
   dueDate: z.string().datetime().nullable().optional(),
-  assigneeId: z.string().uuid().nullable().optional(),
+  assigneeId: z.number().int().positive().nullable().optional(),
   estimatedHours: z.number().min(0).max(10000).optional(),
 });
 
@@ -31,11 +31,11 @@ export const taskPrioritizationSchema = z.object({
 });
 
 export const taskDependencySchema = z.object({
-  targetTaskId: z.string().uuid("ID da tarefa dependência inválido"),
+  targetTaskId: z.number().int().positive("ID da tarefa dependência inválido"),
 });
 
 export const bulkDependenciesSchema = z.object({
-  targetTaskIds: z.array(z.string().uuid()),
+  targetTaskIds: z.array(z.number().int().positive()),
 });
 
 export const moveTaskSchema = z.object({

@@ -14,7 +14,7 @@ export class DocumentRepository {
     });
   }
 
-  async findUnique(id: string) {
+  async findUnique(id: number) {
     return prisma.document.findUnique({
       where: { id },
       include: {
@@ -31,7 +31,7 @@ export class DocumentRepository {
     });
   }
 
-  async update(id: string, data: Record<string, unknown>) {
+  async update(id: number, data: Record<string, unknown>) {
     return prisma.document.update({
       where: { id },
       data: data as any,
@@ -39,12 +39,12 @@ export class DocumentRepository {
     });
   }
 
-  async delete(id: string) {
+  async delete(id: number) {
     return prisma.document.delete({ where: { id } });
   }
 
   async createVersion(data: {
-    documentId: string;
+    documentId: number;
     version: string;
     commit: string;
     changes: string;
@@ -61,14 +61,14 @@ export class DocumentRepository {
     });
   }
 
-  async findVersionsByDocument(documentId: string) {
+  async findVersionsByDocument(documentId: number) {
     return prisma.documentVersion.findMany({
       where: { documentId },
       orderBy: { createdAt: "desc" },
     });
   }
 
-  async findVersion(versionId: string) {
+  async findVersion(versionId: number) {
     return prisma.documentVersion.findUnique({ where: { id: versionId } });
   }
 

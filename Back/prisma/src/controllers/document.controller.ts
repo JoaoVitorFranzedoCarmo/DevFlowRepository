@@ -15,7 +15,7 @@ export class DocumentController {
   }
 
   async findById(req: Request, res: Response) {
-    const doc = await documentService.findById(req.params.id);
+    const doc = await documentService.findById(parseInt(req.params.id));
     res.json(doc);
   }
 
@@ -28,20 +28,20 @@ export class DocumentController {
   }
 
   async update(req: Request, res: Response) {
-    const existing = await documentService.findById(req.params.id);
+    const existing = await documentService.findById(parseInt(req.params.id));
     if (existing.authorId !== req.user!.userId && req.user!.role !== "GERENTE") {
       throw new ForbiddenError("Permissão negada para atualizar documento");
     }
-    const doc = await documentService.update(req.params.id, req.body);
+    const doc = await documentService.update(parseInt(req.params.id), req.body);
     res.json(doc);
   }
 
   async delete(req: Request, res: Response) {
-    const existing = await documentService.findById(req.params.id);
+    const existing = await documentService.findById(parseInt(req.params.id));
     if (existing.authorId !== req.user!.userId && req.user!.role !== "GERENTE") {
       throw new ForbiddenError("Permissão negada para deletar documento");
     }
-    await documentService.delete(req.params.id);
+    await documentService.delete(parseInt(req.params.id));
     res.status(204).send();
   }
 
@@ -49,9 +49,9 @@ export class DocumentController {
     const payload = { ...req.body } as any;
     if (!payload.author) {
       const user = await userRepository.findById(req.user!.userId);
-      payload.author = user?.name ?? req.user!.userId;
+      payload.author = user?.name ?? String(req.user!.userId);
     }
-    const version = await documentService.addVersion(req.params.id, payload, {
+    const version = await documentService.addVersion(parseInt(req.params.id), payload, {
       userId: req.user!.userId,
       role: req.user!.role,
     });
@@ -64,18 +64,16 @@ export class DocumentController {
   }
 
   async getDocumentVersions(req: Request, res: Response) {
-    const versions = await documentService.getDocumentVersions(req.params.id);
+    const versions = await documentService.getDocumentVersions(parseInt(req.params.id));
     res.json(versions);
   }
 
   async restoreVersion(req: Request, res: Response) {
-    const user = await userRepository.findById(req.user!.userId);
-    const result = await documentService.restoreVersion(req.params.id, req.params.versionId, {
+    const result = await documentService.restoreVersion(parseInt(req.params.id), parseInt(req.params.versionId), {
       userId: req.user!.userId,
       role: req.user!.role,
     });
     res.json(result);
-    void user;
   }
 
   async getStats(_req: Request, res: Response) {
@@ -83,17 +81,15 @@ export class DocumentController {
     res.json(stats);
   }
 
-  // Apenas preview — NÃO salva
   async generateContent(req: Request, res: Response) {
     const { format } = req.query;
-    const content = await documentService.generateContent(req.params.id, format as string | undefined);
+    const content = await documentService.generateContent(parseInt(req.params.id), format as string | undefined);
     res.type("text/plain").send(content);
   }
 
-  // Gera e salva no documento + cria versão
   async generateAndSave(req: Request, res: Response) {
     const user = await userRepository.findById(req.user!.userId);
-    const result = await documentService.generateAndSave(req.params.id, req.body, {
+    const result = await documentService.generateAndSave(parseInt(req.params.id), req.body, {
       userId: req.user!.userId,
       role: req.user!.role,
       name: user?.name,

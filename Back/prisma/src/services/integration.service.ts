@@ -4,17 +4,17 @@ import { IntegrationRepository, integrationRepository } from "../repositories/in
 export class IntegrationService {
   constructor(private repo: IntegrationRepository = integrationRepository) {}
 
-  async findByUser(userId: string) {
+  async findByUser(userId: number) {
     return this.repo.findByUser(userId);
   }
 
-  async findById(id: string) {
+  async findById(id: number) {
     const integration = await this.repo.findUnique(id);
     if (!integration) throw new NotFoundError("Integração");
     return integration;
   }
 
-  async create(userId: string, data: { name: string; desc: string; status?: string; icon?: string }) {
+  async create(userId: number, data: { name: string; desc: string; status?: string; icon?: string }) {
     return this.repo.create({
       name: data.name,
       desc: data.desc,
@@ -24,18 +24,18 @@ export class IntegrationService {
     });
   }
 
-  async update(id: string, data: Partial<{ status: string; desc: string }>) {
+  async update(id: number, data: Partial<{ status: string; desc: string }>) {
     await this.findById(id);
     return this.repo.update(id, data);
   }
 
-  async toggle(id: string) {
+  async toggle(id: number) {
     const integration = await this.findById(id);
     const newStatus = integration.status === "conectado" ? "desconectado" : "conectado";
     return this.repo.update(id, { status: newStatus });
   }
 
-  async delete(id: string) {
+  async delete(id: number) {
     await this.findById(id);
     await this.repo.delete(id);
   }

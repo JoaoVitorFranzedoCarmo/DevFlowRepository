@@ -1,7 +1,7 @@
 import prisma from "../config/database";
 
 export class RefreshTokenRepository {
-  async create(data: { token: string; userId: string; expiresAt: Date }) {
+  async create(data: { token: string; userId: number; expiresAt: Date }) {
     return prisma.refreshToken.create({ data });
   }
 
@@ -9,7 +9,7 @@ export class RefreshTokenRepository {
     return prisma.refreshToken.findUnique({ where: { token } });
   }
 
-  async deleteById(id: string) {
+  async deleteById(id: number) {
     return prisma.refreshToken.delete({ where: { id } });
   }
 

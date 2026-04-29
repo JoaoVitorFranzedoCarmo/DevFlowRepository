@@ -21,7 +21,7 @@ export class UserRepository {
     });
   }
 
-  async findById(id: string) {
+  async findById(id: number) {
     return prisma.user.findUnique({
       where: { id },
       select: userSelect,
@@ -32,7 +32,7 @@ export class UserRepository {
     return prisma.user.findUnique({ where: { email } });
   }
 
-  async findByIdWithPassword(id: string) {
+  async findByIdWithPassword(id: number) {
     return prisma.user.findUnique({ where: { id } });
   }
 
@@ -48,7 +48,7 @@ export class UserRepository {
     });
   }
 
-  async update(id: string, data: Record<string, unknown>) {
+  async update(id: number, data: Record<string, unknown>) {
     return prisma.user.update({
       where: { id },
       data: data as any,
@@ -56,7 +56,7 @@ export class UserRepository {
     });
   }
 
-  async delete(id: string) {
+  async delete(id: number) {
     return prisma.user.delete({ where: { id } });
   }
 

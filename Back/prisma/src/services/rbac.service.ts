@@ -114,7 +114,7 @@ export class RbacService {
     module: string;
     action: string;
     allowed: boolean;
-    customRoleId?: string | null;
+    customRoleId?: number | null;
   }) {
     if (!MODULES.includes(data.module as ModuleName)) {
       throw new NotFoundError("Módulo");
@@ -128,7 +128,7 @@ export class RbacService {
   async bulkSetPermissions(
     roleName: string,
     perms: Array<{ module: string; action: string; allowed: boolean }>,
-    customRoleId?: string | null
+    customRoleId?: number | null
   ) {
     const results = [];
     for (const p of perms) {
@@ -160,7 +160,7 @@ export class RbacService {
     return role;
   }
 
-  async deleteRole(id: string) {
+  async deleteRole(id: number) {
     const role = await this.roles.findById(id);
     if (!role) throw new NotFoundError("Cargo");
     if (role.isSystem) throw new ForbiddenError("Cargos de sistema não podem ser excluídos");

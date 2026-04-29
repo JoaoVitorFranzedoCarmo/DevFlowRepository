@@ -17,7 +17,7 @@ export class ComponentService {
     return this.repo.findMany(where);
   }
 
-  async findById(id: string) {
+  async findById(id: number) {
     const component = await this.repo.findUnique(id);
     if (!component) throw new NotFoundError("Componente");
     return component;
@@ -30,7 +30,7 @@ export class ComponentService {
     lang: string;
     tags?: string[];
     codeSnippet?: string;
-    authorId: string;
+    authorId: number;
   }) {
     return this.repo.create({
       name: data.name,
@@ -44,7 +44,7 @@ export class ComponentService {
   }
 
   async update(
-    id: string,
+    id: number,
     data: Partial<{
       name: string;
       desc: string;
@@ -55,7 +55,7 @@ export class ComponentService {
       rating: number;
       codeSnippet: string;
     }>,
-    user?: { userId: string; role: string }
+    user?: { userId: number; role: string }
   ) {
     const component = await this.findById(id);
     if (user) {
@@ -66,7 +66,7 @@ export class ComponentService {
     return this.repo.update(id, data as Record<string, unknown>);
   }
 
-  async delete(id: string, user?: { userId: string; role: string }) {
+  async delete(id: number, user?: { userId: number; role: string }) {
     const component = await this.findById(id);
     if (user) {
       if (component.authorId !== user.userId && user.role !== "GERENTE") {

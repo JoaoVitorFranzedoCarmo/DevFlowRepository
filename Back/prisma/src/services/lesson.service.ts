@@ -16,22 +16,22 @@ export class LessonService {
     return this.repo.findMany(where);
   }
 
-  async findById(id: string) {
+  async findById(id: number) {
     const lesson = await this.repo.findUnique(id);
     if (!lesson) throw new NotFoundError("Lição");
     return lesson;
   }
 
-  async create(data: { title: string; project: string; desc: string; authorId: string }) {
+  async create(data: { title: string; project: string; desc: string; authorId: number }) {
     return this.repo.create(data);
   }
 
-  async update(id: string, data: Partial<{ title: string; project: string; desc: string }>) {
+  async update(id: number, data: Partial<{ title: string; project: string; desc: string }>) {
     await this.findById(id);
     return this.repo.update(id, data as Record<string, unknown>);
   }
 
-  async delete(id: string) {
+  async delete(id: number) {
     await this.findById(id);
     await this.repo.delete(id);
   }

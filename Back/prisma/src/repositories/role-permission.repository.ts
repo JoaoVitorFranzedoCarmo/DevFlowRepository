@@ -9,7 +9,7 @@ export class RolePermissionRepository {
     return prisma.rolePermission.findMany({ where: { roleName } });
   }
 
-  async findByCustomRole(customRoleId: string) {
+  async findByCustomRole(customRoleId: number) {
     return prisma.rolePermission.findMany({ where: { customRoleId } });
   }
 
@@ -18,7 +18,7 @@ export class RolePermissionRepository {
     module: string;
     action: string;
     allowed: boolean;
-    customRoleId?: string | null;
+    customRoleId?: number | null;
   }) {
     return prisma.rolePermission.upsert({
       where: {
@@ -46,14 +46,13 @@ export class RolePermissionRepository {
     return perm?.allowed ?? false;
   }
 
-  async deleteByCustomRole(customRoleId: string) {
+  async deleteByCustomRole(customRoleId: number) {
     return prisma.rolePermission.deleteMany({ where: { customRoleId } });
   }
 }
 
 export const rolePermissionRepository = new RolePermissionRepository();
 
-// Custom roles
 export class CustomRoleRepository {
   async findAll() {
     return prisma.customRole.findMany({
@@ -62,7 +61,7 @@ export class CustomRoleRepository {
     });
   }
 
-  async findById(id: string) {
+  async findById(id: number) {
     return prisma.customRole.findUnique({
       where: { id },
       include: { permissions: true },
@@ -83,11 +82,11 @@ export class CustomRoleRepository {
     });
   }
 
-  async update(id: string, data: { name?: string; description?: string }) {
+  async update(id: number, data: { name?: string; description?: string }) {
     return prisma.customRole.update({ where: { id }, data });
   }
 
-  async delete(id: string) {
+  async delete(id: number) {
     return prisma.customRole.delete({ where: { id } });
   }
 }
