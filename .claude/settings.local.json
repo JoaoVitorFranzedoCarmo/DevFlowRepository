@@ -10,7 +10,20 @@
       "Bash(npx prisma *)",
       "Bash(npx tsc *)",
       "Bash(npm install *)",
-      "Bash(grep \"\\\\.md$\")"
+      "Bash(grep \"\\\\.md$\")",
+      "Bash(pnpm --version)",
+      "Bash(pnpm install *)",
+      "Bash(pnpm *)",
+      "Bash(sed -n '28,36p' /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/apps/api/src/controllers/user.controller.ts)",
+      "Bash(sed -n '10,18p' /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/apps/api/src/middlewares/admin.middleware.ts)",
+      "Bash(git -C /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository status --short)",
+      "Bash(cp -r /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/Back/prisma/src/controllers/. /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/apps/api/src/controllers/)",
+      "Bash(cp -r /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/Back/prisma/src/middlewares/. /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/apps/api/src/middlewares/)",
+      "Bash(cp -r /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/Back/prisma/src/repositories/. /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/apps/api/src/repositories/)",
+      "Bash(cp -r /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/Back/prisma/src/services/. /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/apps/api/src/services/)",
+      "Bash(cp -r /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/Back/prisma/src/validators/. /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/apps/api/src/validators/)",
+      "Bash(cp /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/Back/prisma/prisma/schema.prisma /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/apps/api/prisma/schema.prisma)",
+      "Bash(cp /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/Back/prisma/prisma/seed.ts /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/apps/api/prisma/seed.ts)"
     ]
   }
 }

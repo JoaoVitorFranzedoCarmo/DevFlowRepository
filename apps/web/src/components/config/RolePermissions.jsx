@@ -68,6 +68,12 @@ export default function RolePermissions() {
   const rolePerms = matrix.matrix[selectedRole] || {};
 
   async function handleToggle(module, action, current) {
+    if (selectedRole === "ADMINISTRADOR") {
+      setMessage("Permissões de Administrador não podem ser alteradas");
+      setTimeout(() => setMessage(""), 3000);
+      return;
+    }
+
     setSaving(true);
     try {
       await api.put("/rbac/permission", {

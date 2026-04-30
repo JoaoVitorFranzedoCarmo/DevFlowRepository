@@ -15,7 +15,8 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@devflow/types": ["../../packages/types/src/index.ts"]
     }
   },
   "include": ["src/**/*"],
