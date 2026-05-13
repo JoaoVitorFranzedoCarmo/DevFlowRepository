@@ -5,6 +5,10 @@ export interface TaskPrioritizationData {
   effort: number;
 }
 
+// Strategy — define o contrato de pontuação sem fixar o algoritmo.
+// O service recebe qualquer implementação desta interface e chama score() sem saber
+// qual fórmula está por baixo. Trocar de WSJF para Eisenhower (ou qualquer outra)
+// é injetar uma instância diferente — zero alteração no código do service.
 export interface PrioritizationStrategy {
   readonly name: string;
   score(p: TaskPrioritizationData): number;

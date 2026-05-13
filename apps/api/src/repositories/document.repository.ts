@@ -5,6 +5,9 @@ const docInclude = {
   versions: { orderBy: { createdAt: "desc" as const }, take: 20 },
 } as const;
 
+// Repository — isola todo acesso Prisma do domínio de documentos.
+// Versionamento (createVersion, findVersionsByDocument) e agregações (count, groupByStatus)
+// ficam aqui; o DocumentService não conhece detalhes de schema ou joins.
 export class DocumentRepository {
   async findMany(where: Record<string, unknown> = {}) {
     return prisma.document.findMany({

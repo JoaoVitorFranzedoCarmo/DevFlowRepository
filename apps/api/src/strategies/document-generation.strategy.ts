@@ -8,6 +8,10 @@ export interface DocumentData {
   sourceCode?: string;
 }
 
+// Strategy — isola o algoritmo de geração do documento do service que o invoca.
+// O controller escolhe a estratégia com base no campo `format` da requisição e
+// injeta no service; o service chama generate() sem depender do formato concreto.
+// Adicionar suporte a um novo formato (ex: ASCIIDOC) = nova classe, zero mudança no service.
 export interface DocumentGenerationStrategy {
   readonly format: string;
   generate(data: DocumentData): string;

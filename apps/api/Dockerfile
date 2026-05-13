@@ -1,34 +1,34 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl && npm install -g pnpm
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json* ./
+# Workspace root files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 
-# Install dependencies
-RUN npm install
+# packages/types source (workspace dep)
+COPY packages/types ./packages/types/
 
-# Copy prisma schema
-COPY prisma ./prisma/
+# api package
+COPY apps/api/package.json ./apps/api/
 
-# Generate Prisma client
-RUN npx prisma generate
+RUN pnpm install --frozen-lockfile
 
-# Copy source code
-COPY . .
+COPY apps/api/prisma ./apps/api/prisma/
 
-# Build TypeScript
-# Limit Node.js heap to 256MB to prevent excessive memory use inside container
+RUN pnpm --filter devflow-backend exec prisma generate
+
+COPY apps/api ./apps/api/
+
 ENV NODE_OPTIONS="--max-old-space-size=256"
-RUN npm run build
+RUN pnpm --filter devflow-backend build
 
-# Copy entrypoint
-COPY entrypoint.sh ./entrypoint.sh
+WORKDIR /app/apps/api
+
+COPY apps/api/entrypoint.sh ./entrypoint.sh
 RUN chmod +x entrypoint.sh
 
-# Expose port
 EXPOSE 3001
 
 ENTRYPOINT ["./entrypoint.sh"]

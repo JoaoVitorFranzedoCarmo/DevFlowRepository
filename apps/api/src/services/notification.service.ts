@@ -9,6 +9,10 @@ const STATUS_LABELS: Record<string, string> = {
   CONCLUIDO: "Concluído",
 };
 
+// Observer — NotificationService é o "observer" (subscriber) do barramento appEmitter.
+// TaskService (publisher) emite eventos sem saber que NotificationService existe;
+// o acoplamento entre domínios é zero. Adicionar outro observer (ex: EmailService)
+// não exige alterar TaskService — basta registrar novos listeners no appEmitter.
 export class NotificationService {
   constructor(private repo: NotificationRepository = notificationRepository) {
     this.registerListeners();

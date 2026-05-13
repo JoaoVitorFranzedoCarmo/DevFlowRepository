@@ -23,7 +23,8 @@
       "Bash(cp -r /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/Back/prisma/src/services/. /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/apps/api/src/services/)",
       "Bash(cp -r /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/Back/prisma/src/validators/. /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/apps/api/src/validators/)",
       "Bash(cp /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/Back/prisma/prisma/schema.prisma /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/apps/api/prisma/schema.prisma)",
-      "Bash(cp /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/Back/prisma/prisma/seed.ts /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/apps/api/prisma/seed.ts)"
+      "Bash(cp /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/Back/prisma/prisma/seed.ts /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository/apps/api/prisma/seed.ts)",
+      "Bash(git -C /c/Users/joaov/OneDrive/Documentos/projetoDevFlow/DevFlowRepository log --oneline -5)"
     ]
   }
 }

@@ -21,6 +21,10 @@ export const taskInclude = {
   },
 } as const;
 
+// Repository — camada de abstração entre a lógica de negócio e o Prisma.
+// Services dependem desta interface, não do prisma diretamente; nos testes,
+// basta passar um mock de TaskRepository sem precisar de banco real.
+// Centraliza também as queries complexas (include, groupBy, upsert) fora dos services.
 export class TaskRepository {
   async findMany(
     where: Record<string, unknown> = {},
