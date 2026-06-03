@@ -2,6 +2,7 @@ import { BadRequestError, NotFoundError } from "../utils/errors";
 import { TaskRepository, taskRepository } from "../repositories/task.repository";
 import { PrioritizationStrategy, WSJFStrategy } from "../strategies/prioritization.strategy";
 import appEmitter from "../events/event-emitter";
+import { TaskStatus } from "@devflow/types";
 import { SystemConfigRepository, systemConfigRepository } from "../repositories/system-config.repository";
 
 const COMPLEXITY_BY_PRIORITY: Record<string, number> = {
@@ -152,13 +153,14 @@ export class TaskService {
     return this.repo.upsertPrioritization(taskId, data as any);
   }
 
-  async getPrioritizedTasks() {
+  async getPrioritizedTasks(strategy?: PrioritizationStrategy) {
+    const activeStrategy = strategy ?? this.prioritizationStrategy;
     const tasks = await this.repo.findManyWithPrioritization();
     return tasks
       .map((task) => {
         const p = task.prioritization;
-        const score = p ? this.prioritizationStrategy.score(p) : 0;
-        return { ...task, score, strategy: this.prioritizationStrategy.name };
+        const score = p ? activeStrategy.score(p) : 0;
+        return { ...task, score, strategy: activeStrategy.name };
       })
       .sort((a, b) => b.score - a.score);
   }
@@ -248,7 +250,7 @@ export class TaskService {
         byAssignee.set(t.assigneeId, cur);
       }
 
-      const sprintName = t.status === "CONCLUIDO" ? "Finalizadas" : "Sprint atual";
+      const sprintName = t.status === TaskStatus.CONCLUIDO ? "Finalizadas" : "Sprint atual";
       const sp = bySprint.get(sprintName) || { name: sprintName, cost: 0, hours: 0 };
       sp.cost += cost;
       sp.hours += hours;

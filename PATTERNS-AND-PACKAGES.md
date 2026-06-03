@@ -9,20 +9,23 @@
 - `apps/api/src/events/event-emitter.ts`
 
 **O que faz:**
-Garante uma única instância global de objetos críticos durante todo o ciclo de vida da aplicação.
+Garante que apenas uma instância de um objeto exista em toda a aplicação, compartilhada por todos os módulos que precisam dela.
 
 **Por que é Singleton:**
-O Singleton se aplica quando criar mais de uma instância quebraria o comportamento esperado do sistema. Aqui há dois casos clássicos:
-- `PrismaClient` gerencia um **connection pool** com o PostgreSQL. Múltiplas instâncias = múltiplos pools = conexões esgotadas rapidamente. O banco aceita um número fixo de conexões simultâneas; exceder isso resulta em erro.
-- `EventEmitter` é o barramento central de eventos. Se cada módulo criasse o próprio, listeners registrados em um não receberiam eventos emitidos em outro — o sistema de notificações quebraria silenciosamente.
+O Singleton se aplica quando criar mais de uma instância quebraria o comportamento do sistema. Aqui há dois casos concretos:
+
+- `PrismaClient` gerencia um **connection pool** com o PostgreSQL. O banco aceita um número fixo de conexões simultâneas. Se cada módulo criasse `new PrismaClient()` separado, cada um abriria seu próprio pool — conexões esgotadas rapidamente, erros em produção.
+- `EventEmitter` é o barramento central de eventos. Se cada módulo criasse o próprio `EventEmitter`, um listener registrado em um não receberia eventos emitidos em outro. O Observer Pattern (seção 4) dependente disso quebraria silenciosamente.
 
 **Como foi feito:**
-- `database.ts` usa `globalThis` para armazenar o `PrismaClient`. Em dev, o hot reload do `ts-node-dev` recarrega módulos a cada mudança — sem `globalThis`, cada reload criaria nova instância apesar de o processo Node continuar o mesmo. `globalThis` sobrevive a reloads de módulo.
-- `event-emitter.ts` aplica a mesma estratégia para o `EventEmitter`.
+`ts-node-dev` (hot reload em dev) recarrega módulos a cada mudança de arquivo, mas **não reinicia o processo Node**. Sem proteção, cada reload criaria nova instância. `globalThis` é o objeto global do processo — sobrevive a reloads de módulo.
 
-```
-globalThis.__prisma ??= new PrismaClient()
-export const prisma = globalThis.__prisma
+```typescript
+// database.ts
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
+const prisma = globalForPrisma.prisma || new PrismaClient()
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export default prisma
 ```
 
 ---
@@ -42,22 +45,30 @@ export const prisma = globalThis.__prisma
 | `SystemConfigRepository` | `systemConfig` |
 
 **O que faz:**
-Isola toda lógica de acesso a dados. Nenhum `prisma.*` aparece em controllers ou services diretamente.
+Isola toda lógica de acesso a dados atrás de uma classe. Nenhum `prisma.*` aparece em controllers ou services diretamente — eles só chamam métodos do repositório.
 
 **Por que é Repository:**
-O Repository se aplica quando a lógica de negócio não deve depender da tecnologia de persistência. Aqui o service não sabe que usa Prisma, PostgreSQL ou qualquer ORM — ele chama métodos como `repo.findMany()` ou `repo.create()`. Isso tem duas consequências práticas:
-1. **Testabilidade**: nos testes, `TaskRepository` é substituído por um objeto simples com os mesmos métodos mas sem banco real — sem necessidade de banco em CI.
-2. **Centralização**: queries com múltiplos `include`, `groupBy` e `upsert` ficam num só lugar; o service não vira um arquivo de SQL disfarçado de TypeScript.
+Sem o pattern, services misturariam lógica de negócio com queries Prisma. O acoplamento causaria dois problemas:
+
+1. **Testes difíceis**: testar um service exigiria banco real. Com repositório, basta passar um mock com os mesmos métodos — sem banco, sem lentidão em CI.
+2. **Queries espalhadas**: um `include` complexo repetido em 3 services vira 3 lugares para corrigir se o schema mudar. Com repositório, fica num só lugar.
 
 **Como foi feito:**
-Cada repositório é uma classe que usa o `prisma` singleton importado de `config/database.ts`. Services recebem o repositório via construtor — em produção usa-se o singleton exportado (`taskRepository`), em testes passa-se um mock.
+Cada repositório é uma classe que usa o `prisma` singleton. Services recebem o repositório via construtor — em produção usa o singleton exportado, em testes recebe um mock.
 
-```
+```typescript
 // controller → service → repository → prisma
 class TaskService {
-  constructor(private repo: TaskRepository) {}
-  async create(data) { return this.repo.create(data) }
+  constructor(private repo: TaskRepository = taskRepository) {}
+
+  async create(data) {
+    return this.repo.create(data)  // service não sabe que usa Prisma
+  }
 }
+
+// no teste:
+const mockRepo = { create: jest.fn().mockResolvedValue({ id: 1 }) }
+const service = new TaskService(mockRepo as any)
 ```
 
 ---
@@ -82,55 +93,121 @@ Interface: `DocumentGenerationStrategy.generate(data): string`
 | Estratégia | Saída |
 |---|---|
 | `HtmlGenerationStrategy` | HTML estruturado com seções e syntax highlight |
-| `PdfGenerationStrategy` | Base64 de PDF |
+| `PdfGenerationStrategy` | Texto formatado (PDF-like) |
 | `MarkdownGenerationStrategy` | Markdown com frontmatter |
 
 Usado em: `POST /documents/:id/generate` (gera + salva) · `GET /documents/:id/content?format=HTML` (preview)
 
 **Por que é Strategy:**
-O Strategy se aplica quando há múltiplos algoritmos intercambiáveis para resolver o mesmo problema e a escolha acontece em runtime. Aqui o "problema" é calcular uma pontuação de prioridade — mas WSJF e Eisenhower usam fórmulas completamente diferentes. Sem o pattern, o service teria um `if/switch` por algoritmo; cada novo método de priorização exigiria alterar o service (violação do Open/Closed Principle). Com o pattern, o service só chama `strategy.score(p)` e ignora qual algoritmo está rodando.
+O Strategy se aplica quando há múltiplos algoritmos para resolver o mesmo problema e a escolha acontece em runtime (com base numa entrada do usuário, por exemplo).
 
-O mesmo raciocínio vale para geração de documentos: HTML, PDF e Markdown têm lógicas totalmente distintas, mas o service os trata de forma idêntica chamando `strategy.generate(data)`.
+Sem o pattern, o service teria um `if/switch` gigante:
+
+```typescript
+// SEM Strategy — ruim
+async generate(docId, format) {
+  if (format === 'HTML') {
+    // 50 linhas de geração HTML
+  } else if (format === 'PDF') {
+    // 40 linhas de geração PDF
+  } else if (format === 'MARKDOWN') {
+    // 30 linhas de Markdown
+  }
+  // adicionar ASCIIDOC = editar este arquivo
+}
+```
+
+Com o pattern, adicionar novo formato = nova classe, zero mudança no service:
+
+```typescript
+// COM Strategy — limpo
+async generate(docId, format) {
+  const strategy = getStrategy(format)  // escolhe HTML, PDF ou MD
+  const content = strategy.generate(data)  // service não sabe qual é
+  await this.repo.update(docId, { content })
+}
+
+// adicionar ASCIIDOC: nova classe AsciidocGenerationStrategy, só isso
+```
 
 **Como foi feito:**
-Interface TypeScript define contrato (`score` ou `generate`). O controller escolhe qual estratégia injetar com base no `format` da requisição e passa para o service. Adicionar novo formato = nova classe implementando a interface, zero mudança no service.
+Interface TypeScript define o contrato (`score` ou `generate`). O controller lê o `format` da requisição, instancia a estratégia correta e injeta no service.
 
 ---
 
 ### 4. Observer Pattern
 
 **Arquivos:**
-- `apps/api/src/events/event-emitter.ts` — `appEmitter` (Singleton)
-- `apps/api/src/services/notification.service.ts` — `registerListeners()`
+- `apps/api/src/events/event-emitter.ts` — `appEmitter` (barramento de eventos, Singleton)
+- `apps/api/src/services/notification.service.ts` — `registerListeners()` (ouvintes)
 
-**Eventos emitidos:**
+**Eventos no sistema:**
 
-| Evento | Quando |
-|---|---|
-| `task:status_changed` | Status de tarefa muda |
-| `task:assigned` | Tarefa atribuída a usuário |
-| `task:due_soon` | Tarefa próxima do vencimento (cron/job) |
+| Evento | Quem emite | Quando |
+|---|---|---|
+| `task:status_changed` | `TaskService` | Status de tarefa muda |
+| `task:assigned` | `TaskService` | Tarefa atribuída a usuário |
+| `task:due_soon` | job agendado | Tarefa próxima do vencimento |
 
-**O que faz:**
-Services emitem eventos sem saber quem vai ouvir. `NotificationService` registra listeners que persistem notificações no banco para cada usuário afetado.
+**O problema que resolve — acoplamento entre domínios:**
 
-**Por que é Observer:**
-O Observer se aplica quando um evento em um domínio deve disparar reações em outros domínios sem que o emissor conheça os receptores — desacoplamento entre publisher e subscriber. Aqui `TaskService` emite `task:assigned` após atribuir uma tarefa; ele não sabe (e não deve saber) que isso vai gerar uma notificação. `NotificationService` registra o listener de forma independente.
+Sem Observer, `TaskService` precisaria chamar `NotificationService` diretamente:
 
-Sem o pattern, `TaskService` teria que importar `NotificationService` diretamente e chamar `notificationService.create(...)` — acoplamento direto entre domínios. Com o Observer, adicionar um novo efeito colateral (ex: mandar e-mail, atualizar métricas) exige apenas um novo listener no `appEmitter`, sem tocar em `TaskService`.
+```typescript
+// SEM Observer — TaskService conhece NotificationService
+import { notificationService } from "./notification.service"
 
-**Como foi feito:**
-`appEmitter` é o EventEmitter nativo do Node.js exposto como Singleton. Em `server.ts`, `notificationService.registerListeners()` é chamado no bootstrap — registra os handlers antes de o servidor aceitar requisições.
+class TaskService {
+  async assign(taskId, userId) {
+    await this.repo.update(taskId, { assigneeId: userId })
 
+    // TaskService agora depende de NotificationService
+    await notificationService.create({ userId, message: "você foi atribuído..." })
+    // e se precisar de e-mail também? importa EmailService aqui?
+    // e métricas? e Slack? TaskService vira um Frankenstein
+  }
+}
 ```
-// emissor (TaskService)
-appEmitter.emit('task:assigned', { taskId, assigneeId })
 
-// ouvinte (NotificationService.registerListeners)
-appEmitter.on('task:assigned', async ({ taskId, assigneeId }) => {
-  await this.repo.create({ userId: assigneeId, ... })
+**Com Observer — TaskService não sabe quem reage:**
+
+```typescript
+// TaskService só anuncia o que aconteceu
+class TaskService {
+  async assign(taskId, userId) {
+    await this.repo.update(taskId, { assigneeId: userId })
+    appEmitter.emit('task:assigned', { taskId, assigneeId: userId })
+    // acabou. TaskService não sabe que existe NotificationService.
+  }
+}
+```
+
+```typescript
+// NotificationService "cola o ouvido" no barramento — independente
+class NotificationService {
+  registerListeners() {
+    // .on() = "quero ouvir este evento"
+    appEmitter.on('task:assigned', (event) => {
+      // recebe o evento e salva notificação no banco
+      this.repo.create({ userId: event.assigneeId, message: "você foi atribuído..." })
+    })
+  }
+}
+```
+
+**O que são listeners:**
+`.on('evento', fn)` registra uma função que fica "aguardando". Quando `.emit('evento', dados)` dispara em qualquer parte do código, Node.js chama automaticamente todas as funções registradas com `.on` para aquele evento, passando os dados. É como uma inscrição — você se inscreve num evento e recebe a chamada quando ele acontece.
+
+**Vantagem concreta:** amanhã você quer mandar e-mail quando tarefa é atribuída. Não toca em `TaskService`. Só adiciona:
+
+```typescript
+appEmitter.on('task:assigned', (event) => {
+  emailService.send(event.assigneeId, "você foi atribuído")
 })
 ```
+
+**Como foi feito:**
+`appEmitter` é o `EventEmitter` nativo do Node.js, exposto como Singleton via `globalThis`. Em `server.ts`, `notificationService.registerListeners()` é chamado no bootstrap — registra todos os `.on()` antes de o servidor aceitar requisições.
 
 ---
 
@@ -141,139 +218,247 @@ appEmitter.on('task:assigned', async ({ taskId, assigneeId }) => {
 ```
 devflow/                    ← root (pnpm workspace)
 ├── apps/
-│   ├── api/                ← backend (devflow-backend)
-│   └── web/                ← frontend (devflow-front)
-├── packages/
-│   └── types/              ← @devflow/types (tipos compartilhados)
-└── Back/prisma/            ← diretório legado do backend
+│   ├── api/                ← backend REST (Node.js + Express + Prisma)
+│   └── web/                ← frontend SPA (React + Vite)
+└── packages/
+    └── types/              ← @devflow/types (contratos TypeScript compartilhados)
 ```
+
+**Por que monorepo com pnpm workspaces?**
+Frontend e backend compartilham os mesmos tipos (enums, interfaces). Sem monorepo, seriam dois repositórios separados e os tipos estariam duplicados — uma mudança no backend exigiria atualizar o frontend manualmente, com risco de dessincronia. O `workspace:*` do pnpm conecta os pacotes internamente sem publicar no npm.
 
 ---
 
-### `apps/api` — Backend API
+### `apps/api` — Backend REST
 
-**Nome:** `devflow-backend`  
-**Stack:** Node.js · Express · TypeScript · Prisma ORM · PostgreSQL · Jest
+**Nome do pacote:** `devflow-backend`
+**Stack:** Node.js · Express · TypeScript · Prisma ORM · PostgreSQL · Jest · Zod
+
+**Por que foi feito:**
+É a camada de servidor que expõe a API REST consumida pelo frontend. Responsável por autenticação JWT, controle de acesso (RBAC), persistência no banco e disparo de notificações. Sem ele, o frontend não teria dados reais — tudo seria mock.
 
 **O que faz:**
-API REST que serve o frontend. Gerencia tarefas, documentos, componentes, usuários, RBAC, notificações e configurações do sistema.
+- Autentica usuários com JWT (access token curto + refresh token longo)
+- Gerencia tarefas, documentos, componentes, templates, lições aprendidas
+- Calcula scores de priorização (WSJF / Eisenhower)
+- Gera documentação em HTML/PDF/Markdown a partir de código-fonte
+- Controla permissões por cargo via RBAC dinâmico no banco
+- Emite eventos para o sistema de notificações (Observer)
 
 **Como rodar:**
+
+Pré-requisito: PostgreSQL rodando e `apps/api/.env` configurado (ver seção Variáveis de Ambiente).
+
 ```bash
 cd apps/api
-npm run dev              # dev com hot reload (ts-node-dev)
-npm run build            # compila TypeScript → dist/
-npm start                # inicia dist/server.js
-npm run typecheck        # tsc --noEmit (zero erros obrigatório)
-npm test                 # jest --runInBand --forceExit
-npm run test:watch       # jest em modo watch
+
+# Primeira vez
+npm run prisma:migrate   # cria tabelas no banco
+npm run prisma:seed      # popula dados iniciais (cargos, configs)
+
+# Dev diário
+npm run dev              # hot reload com ts-node-dev
+
+# Verificações
+npm run typecheck        # TypeScript sem erros (obrigatório antes de commit)
+npm test                 # testes com Jest
+
+# Banco
+npm run prisma:studio    # interface visual do banco no browser
+npm run db:push          # sincroniza schema sem migration (prototipagem)
+npm run reset:db         # ⚠️ DESTRUTIVO — apaga tudo e recria
 ```
 
-**Banco de dados:**
-```bash
-npm run db:push          # sincroniza schema sem criar migration
-npm run prisma:migrate   # cria e aplica migration
-npm run prisma:seed      # popula dados iniciais (RBAC, configs)
-npm run prisma:studio    # abre Prisma Studio no browser
-npm run reset:db         # ⚠️ DESTRUTIVO — apaga e recria banco
-```
+**Dependências e por que cada uma:**
 
-**Dependências principais:**
-
-| Pacote | Propósito |
+| Pacote | Por que foi escolhido |
 |---|---|
-| `express` | Framework HTTP |
-| `@prisma/client` | ORM — acesso ao PostgreSQL |
-| `jsonwebtoken` | JWT para auth (access + refresh tokens) |
-| `bcryptjs` | Hash de senhas |
-| `zod` | Validação de schemas no corpo das requisições |
-| `cors` | Configura CORS para o frontend |
-| `dotenv` | Carrega variáveis de ambiente de `.env` |
-| `@devflow/types` | Tipos/enums compartilhados (workspace) |
+| `express` | Framework HTTP minimalista — rotas, middlewares, JSON out-of-the-box |
+| `@prisma/client` | ORM type-safe — queries com autocomplete TypeScript, migrations, seed |
+| `jsonwebtoken` | Assina e verifica JWTs — access token (15min) + refresh token (7d) |
+| `bcryptjs` | Hash de senha com salt — não armazena senha em texto plano |
+| `zod` | Valida o corpo das requisições antes de chegar no service — erros claros ao cliente |
+| `cors` | Permite que o frontend (porta 5173) chame a API (porta 3000) |
+| `dotenv` | Carrega `DATABASE_URL`, `JWT_SECRET` etc. do arquivo `.env` |
+| `@devflow/types` | Enums e interfaces do monorepo — sem duplicar tipos entre back e front |
 
-**DevDependencies principais:**
-
-| Pacote | Propósito |
+| DevDependency | Por que foi escolhido |
 |---|---|
-| `ts-node-dev` | Hot reload em dev sem compilar |
-| `typescript` | Compilador TS |
-| `jest` + `ts-jest` | Testes unitários/integração |
-| `supertest` | Testa rotas HTTP sem subir servidor real |
-| `prisma` | CLI do Prisma (migrations, seed, studio) |
+| `ts-node-dev` | Roda TypeScript direto em dev com hot reload — sem compilar manualmente |
+| `typescript` | Tipagem estática — pega erros em tempo de build, não em produção |
+| `jest` + `ts-jest` | Framework de testes — `ts-jest` permite testar arquivos `.ts` direto |
+| `supertest` | Faz requisições HTTP nos testes sem precisar subir o servidor |
+| `prisma` (CLI) | Roda `migrate`, `seed`, `studio` — ferramentas de banco em desenvolvimento |
 
 ---
 
-### `apps/web` — Frontend
+### `apps/web` — Frontend SPA
 
-**Nome:** `devflow-front`  
+**Nome do pacote:** `devflow-front`
 **Stack:** React 18 · Vite · Tailwind CSS · Axios · Recharts
 
+**Por que foi feito:**
+É a interface do usuário. Consome a API do backend e apresenta Kanban, priorização, documentação, biblioteca de componentes e dashboard de métricas. Sem ele, a API existiria mas ninguém conseguiria usar o sistema sem chamadas manuais.
+
 **O que faz:**
-SPA com Kanban, priorização, documentação, componentes reutilizáveis, dashboard de custos, RBAC e notificações em tempo real (polling).
+- Kanban com drag-and-drop de status (BACKLOG → CONCLUÍDO)
+- Matriz de priorização Eisenhower e ranking WSJF
+- Geração e versionamento de documentação técnica
+- Dashboard com gráficos de custo, burndown e distribuição de tarefas
+- Controle de acesso visual baseado no RBAC do backend
+- Notificações em tempo real via polling a cada 30s
+- Tema claro/escuro com preferência salva no localStorage
 
 **Como rodar:**
+
+Pré-requisito: `apps/api` rodando na porta 3000.
+
 ```bash
 cd apps/web
-npm run dev          # Vite dev server (HMR)
-npm run build        # build de produção → dist/
-npm run preview      # preview do build de produção
+
+npm run dev        # Vite dev server com HMR (Hot Module Replacement)
+npm run build      # gera dist/ otimizado para produção
+npm run preview    # testa o build de produção localmente
 ```
 
-**Dependências principais:**
+**Dependências e por que cada uma:**
 
-| Pacote | Propósito |
+| Pacote | Por que foi escolhido |
 |---|---|
-| `react` + `react-dom` | UI declarativa com componentes |
-| `axios` | HTTP client — chama a API com interceptor de JWT refresh |
-| `recharts` | Gráficos no Dashboard (burndown, pizza, barras) |
-| `react-syntax-highlighter` | Highlight de código em `ComponentDetail` |
-| `@devflow/types` | Tipos/enums compartilhados (workspace) |
+| `react` + `react-dom` | UI baseada em componentes — estado reativo, re-render eficiente |
+| `axios` | HTTP client com interceptors — interceptor de refresh token automático (renova JWT expirado sem logout) |
+| `recharts` | Gráficos declarativos em React — burndown, pizza de status, barras de custo |
+| `react-syntax-highlighter` | Highlight de código na tela de Componentes — exibe `codeSnippet` com cores por linguagem |
+| `@devflow/types` | Enums compartilhados — frontend usa os mesmos `TaskStatus`, `Role` etc. do backend |
 
-**DevDependencies principais:**
-
-| Pacote | Propósito |
+| DevDependency | Por que foi escolhido |
 |---|---|
-| `vite` | Bundler/dev server ultra-rápido |
-| `@vitejs/plugin-react` | Suporte a JSX e Fast Refresh |
-| `tailwindcss` | CSS utilitário (dark mode via classe `dark`) |
-| `postcss` + `autoprefixer` | Processamento de CSS para Tailwind |
+| `vite` | Dev server e bundler ultra-rápido — HMR instantâneo, build com Rollup |
+| `@vitejs/plugin-react` | Suporte a JSX + Fast Refresh no Vite |
+| `tailwindcss` | CSS utilitário — classes direto no JSX, dark mode via classe `dark` na raiz |
+| `postcss` + `autoprefixer` | Tailwind precisa do PostCSS para processar as classes em CSS final |
 
 ---
 
-### `packages/types` — Tipos Compartilhados
+### `packages/types` — Contratos Compartilhados
 
-**Nome:** `@devflow/types`  
-**Stack:** TypeScript puro (sem runtime)
+**Nome do pacote:** `@devflow/types`
+**Stack:** TypeScript puro — sem runtime, sem dependências
 
-**O que faz:**
-Biblioteca de tipos, enums e DTOs compartilhados entre `apps/api` e `apps/web`. Garante que backend e frontend usem os mesmos contratos de dados sem duplicação.
+**Por que foi feito:**
+Backend e frontend precisam concordar sobre a "forma" dos dados. Sem esse pacote, os tipos estariam duplicados: `TaskStatus` definido em dois lugares, com risco de um ficar desatualizado. Um enum diferente entre back e front causaria bugs silenciosos (valores que o frontend envia e o backend rejeita, ou vice-versa).
+
+`@devflow/types` é a **fonte única de verdade** para contratos de dados. Qualquer mudança de schema que afete a API é feita aqui e ambos os apps recebem o erro de TypeScript imediatamente.
 
 **Como rodar:**
+
 ```bash
 cd packages/types
-npm run build        # tsc → dist/ (necessário antes de usar nos apps)
-npm run dev          # tsc --watch (rebuild automático em dev)
+
+npm run build      # compila TypeScript → dist/ (necessário antes de usar nos apps)
+npm run dev        # tsc --watch — recompila a cada mudança (útil ao editar tipos)
 ```
 
-**Conteúdo de `src/index.ts`:**
+> Em dev, rode `npm run dev` aqui em paralelo com os outros apps para que mudanças nos tipos reflitam imediatamente.
 
-| Export | Tipo | Descrição |
+**O que exporta:**
+
+| Export | Tipo | O que representa |
 |---|---|---|
-| `Role` | enum | GERENTE, LIDER, DESENVOLVEDOR, QA |
-| `TaskStatus` | enum | BACKLOG → CONCLUIDO |
-| `TaskPriority` | enum | CRITICA, ALTA, MEDIA, BAIXA |
-| `DocType` / `DocFormat` / `DocStatus` | enum | Tipos de documento |
-| `Quadrant` | enum | FAZER, AGENDAR, DELEGAR, ELIMINAR |
-| `JwtPayload` | interface | `{ userId, role }` — payload do JWT |
+| `Role` | enum | Cargos do sistema: GERENTE, LIDER, DESENVOLVEDOR, QA |
+| `TaskStatus` | enum | Colunas do Kanban: BACKLOG → CONCLUIDO |
+| `TaskPriority` | enum | Prioridade da tarefa: CRITICA, ALTA, MEDIA, BAIXA |
+| `DocType` / `DocFormat` / `DocStatus` | enum | Classificação e estado de documentos |
+| `Quadrant` | enum | Quadrantes Eisenhower: FAZER, AGENDAR, DELEGAR, ELIMINAR |
+| `JwtPayload` | interface | Payload decodificado do JWT: `{ userId, role }` |
 | `UserDTO` | interface | Dados de usuário retornados pela API |
-| `TaskDTO` | interface | Tarefa com priorização opcional |
-| `DocumentDTO` | interface | Documento técnico |
-| `RolePermissionDTO` | interface | Permissão RBAC |
-| `NotificationDTO` | interface | Notificação persistida |
-| `CostBreakdownDTO` | interface | Dados do dashboard de custos |
+| `TaskDTO` | interface | Tarefa completa com priorização opcional |
+| `DocumentDTO` | interface | Documento técnico com versão e status |
+| `RolePermissionDTO` | interface | Permissão RBAC: `roleName × module × action × allowed` |
+| `NotificationDTO` | interface | Notificação persistida por usuário |
+| `CostBreakdownDTO` | interface | Dados do dashboard de custo estimado |
 
-**Como foi feito:**
-Enums espelham os enums do Prisma schema — mantidos em sync manualmente. Ao alterar o schema Prisma, os enums aqui devem ser atualizados também. Referenciado nos `package.json` dos apps como `"@devflow/types": "workspace:*"` (pnpm workspace protocol).
+**Como funciona no monorepo:**
+Os apps referenciam este pacote com `"@devflow/types": "workspace:*"` no `package.json`. O pnpm resolve o `workspace:*` para o diretório local `packages/types/dist/` — nenhum publish no npm necessário.
+
+---
+
+## Onde `@devflow/types` está sendo usado hoje
+
+### Arquivos migrados — Backend (`apps/api`)
+
+| Arquivo | O que importa | O que substituiu |
+|---|---|---|
+| `src/middlewares/auth.middleware.ts` | `JwtPayload` | interface definida inline no próprio arquivo |
+| `src/validators/auth.validator.ts` | `Role` | `z.enum(["GERENTE", "LIDER", ...])` |
+| `src/validators/user.validator.ts` | `Role` | `z.enum(["GERENTE", "LIDER", ...])` |
+| `src/validators/task.validator.ts` | `TaskStatus`, `TaskPriority`, `Quadrant` | `z.enum(["BACKLOG", ...])` em 4 lugares |
+| `src/utils/ownership.ts` | `Role` | `role !== "GERENTE"` (string solta) |
+| `src/repositories/task.repository.ts` | `TaskStatus` | `status: { notIn: ["CONCLUIDO"] }` |
+
+### Arquivos migrados — Frontend (`apps/web`)
+
+| Arquivo | O que importa | O que substituiu |
+|---|---|---|
+| `src/components/KanbanPage.jsx` | `TaskStatus` | strings `"BACKLOG"`, `"CONCLUIDO"` etc. em mapas e `useState` |
+| `src/components/kanban/NewTaskModal.jsx` | `TaskStatus`, `TaskPriority`, `Quadrant` | arrays de opções com strings e `computeQuadrant` retornando strings |
+
+---
+
+### Como empacotar (adicionar ao pacote)
+
+Edita `packages/types/src/index.ts` e adiciona o que precisar:
+
+```typescript
+// exemplo: novo status de tarefa
+export enum TaskStatus {
+  BACKLOG   = "BACKLOG",
+  AFAZER    = "AFAZER",
+  PROGRESSO = "PROGRESSO",
+  REVISAO   = "REVISAO",
+  CONCLUIDO = "CONCLUIDO",
+  CANCELADO = "CANCELADO",  // ← novo valor aqui
+}
+```
+
+Depois compila:
+```bash
+cd packages/types
+npm run build
+```
+
+TypeScript sublinha vermelho em todo lugar que não trata o novo valor — você nunca esquece de atualizar.
+
+---
+
+### Como desempacotar (usar nos arquivos)
+
+```typescript
+// Backend (.ts)
+import { Role, TaskStatus, TaskPriority, Quadrant } from "@devflow/types"
+
+// Frontend (.jsx) — funciona igual
+import { TaskStatus } from "@devflow/types"
+```
+
+**Backend** resolve via `apps/api/tsconfig.json` → `packages/types/dist/index` (compilado).  
+**Frontend** resolve via `apps/web/vite.config.js` → `packages/types/src/index.ts` (Vite compila na hora).
+
+#### Exemplos reais do projeto
+
+```typescript
+// validator — enum do pacote, não string duplicada
+import { TaskStatus } from "@devflow/types"
+z.nativeEnum(TaskStatus)   // aceita só valores do enum
+
+// comparação de role
+import { Role } from "@devflow/types"
+if (req.user.role !== Role.GERENTE) throw new ForbiddenError(...)
+
+// estado no React
+import { TaskStatus } from "@devflow/types"
+const [status, setStatus] = useState(TaskStatus.BACKLOG)
+```
 
 ---
 

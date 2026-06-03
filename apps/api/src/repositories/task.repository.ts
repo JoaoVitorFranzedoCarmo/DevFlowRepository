@@ -1,4 +1,5 @@
 import prisma from "../config/database";
+import { TaskStatus } from "@devflow/types";
 
 export const taskInclude = {
   assignee: {
@@ -127,7 +128,7 @@ export class TaskRepository {
     return prisma.task.findMany({
       where: {
         dueDate: { gte: now, lte: limit },
-        status: { notIn: ["CONCLUIDO"] },
+        status: { notIn: [TaskStatus.CONCLUIDO] },
         assigneeId: { not: null },
       },
       include: taskInclude,

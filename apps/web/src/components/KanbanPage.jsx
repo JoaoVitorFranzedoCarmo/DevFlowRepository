@@ -5,21 +5,22 @@ import KanbanHeader from "./kanban/KanbanHeader";
 import KanbanColumn from "./kanban/KanbanColumn";
 import NewTaskModal from "./kanban/NewTaskModal";
 import { mapTask } from "../utils/taskMapper";
+import { TaskStatus } from "@devflow/types";
 
 const STATUS_TO_COL = {
-  BACKLOG: "backlog",
-  AFAZER: "afazer",
-  PROGRESSO: "progresso",
-  REVISAO: "revisao",
-  CONCLUIDO: "concluido",
+  [TaskStatus.BACKLOG]:   "backlog",
+  [TaskStatus.AFAZER]:    "afazer",
+  [TaskStatus.PROGRESSO]: "progresso",
+  [TaskStatus.REVISAO]:   "revisao",
+  [TaskStatus.CONCLUIDO]: "concluido",
 };
 
 const COL_TO_STATUS = {
-  backlog: "BACKLOG",
-  afazer: "AFAZER",
-  progresso: "PROGRESSO",
-  revisao: "REVISAO",
-  concluido: "CONCLUIDO",
+  backlog:   TaskStatus.BACKLOG,
+  afazer:    TaskStatus.AFAZER,
+  progresso: TaskStatus.PROGRESSO,
+  revisao:   TaskStatus.REVISAO,
+  concluido: TaskStatus.CONCLUIDO,
 };
 
 const columnMeta = {
@@ -55,7 +56,7 @@ export default function KanbanPage() {
   const [filterPriority, setFilterPriority] = useState("todas");
   const [filterAssignee, setFilterAssignee] = useState("todos");
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalStatus, setModalStatus] = useState("BACKLOG");
+  const [modalStatus, setModalStatus] = useState(TaskStatus.BACKLOG);
   const [editingTask, setEditingTask] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -179,7 +180,7 @@ export default function KanbanPage() {
 
   const openNewTaskModal = useCallback((colId) => {
     setEditingTask(null);
-    setModalStatus(COL_TO_STATUS[colId] || "BACKLOG");
+    setModalStatus(COL_TO_STATUS[colId] || TaskStatus.BACKLOG);
     setModalOpen(true);
   }, []);
 
@@ -251,7 +252,7 @@ export default function KanbanPage() {
         setFilterPriority={setFilterPriority}
         filterAssignee={filterAssignee}
         setFilterAssignee={setFilterAssignee}
-        onNewTask={() => { setEditingTask(null); setModalStatus("BACKLOG"); setModalOpen(true); }}
+        onNewTask={() => { setEditingTask(null); setModalStatus(TaskStatus.BACKLOG); setModalOpen(true); }}
       />
 
       <div className="flex items-center gap-4 mb-4 text-xs text-slate-400 dark:text-slate-500 flex-wrap">

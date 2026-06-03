@@ -1,30 +1,34 @@
 // src/components/kanban/NewTaskModal.jsx
 import { useState, useEffect, useRef, useId, useMemo } from "react";
+import { TaskStatus, TaskPriority, Quadrant } from "@devflow/types";
 
 const statusOptions = [
-  { value: "BACKLOG",   label: "Backlog" },
-  { value: "AFAZER",    label: "A Fazer" },
-  { value: "PROGRESSO", label: "Em Progresso" },
-  { value: "REVISAO",   label: "Em Revisão" },
-  { value: "CONCLUIDO", label: "Concluído" },
+  { value: TaskStatus.BACKLOG,   label: "Backlog" },
+  { value: TaskStatus.AFAZER,    label: "A Fazer" },
+  { value: TaskStatus.PROGRESSO, label: "Em Progresso" },
+  { value: TaskStatus.REVISAO,   label: "Em Revisão" },
+  { value: TaskStatus.CONCLUIDO, label: "Concluído" },
 ];
 
 const priorityOptions = [
-  { value: "CRITICA", label: "Crítica" },
-  { value: "ALTA",    label: "Alta" },
-  { value: "MEDIA",   label: "Média" },
-  { value: "BAIXA",   label: "Baixa" },
+  { value: TaskPriority.CRITICA, label: "Crítica" },
+  { value: TaskPriority.ALTA,    label: "Alta" },
+  { value: TaskPriority.MEDIA,   label: "Média" },
+  { value: TaskPriority.BAIXA,   label: "Baixa" },
 ];
 
 function computeQuadrant(urgency, importance) {
-  if (urgency >= 3 && importance >= 3) return "FAZER";
-  if (urgency < 3 && importance >= 3) return "AGENDAR";
-  if (urgency >= 3 && importance < 3) return "DELEGAR";
-  return "ELIMINAR";
+  if (urgency >= 3 && importance >= 3) return Quadrant.FAZER;
+  if (urgency < 3 && importance >= 3) return Quadrant.AGENDAR;
+  if (urgency >= 3 && importance < 3) return Quadrant.DELEGAR;
+  return Quadrant.ELIMINAR;
 }
 
 const QUADRANT_LABEL = {
-  FAZER: "Fazer agora", AGENDAR: "Agendar", DELEGAR: "Delegar", ELIMINAR: "Eliminar",
+  [Quadrant.FAZER]:    "Fazer agora",
+  [Quadrant.AGENDAR]:  "Agendar",
+  [Quadrant.DELEGAR]:  "Delegar",
+  [Quadrant.ELIMINAR]: "Eliminar",
 };
 
 export default function NewTaskModal({
@@ -44,8 +48,8 @@ export default function NewTaskModal({
 
   const [title,    setTitle]    = useState(task?.title    ?? "");
   const [desc,     setDesc]     = useState(task?.desc     ?? "");
-  const [status,   setStatus]   = useState(task?.statusRaw ?? initialStatus ?? "BACKLOG");
-  const [priority, setPriority] = useState(task?.priorityRaw ?? "MEDIA");
+  const [status,   setStatus]   = useState(task?.statusRaw ?? initialStatus ?? TaskStatus.BACKLOG);
+  const [priority, setPriority] = useState(task?.priorityRaw ?? TaskPriority.MEDIA);
   const [tagsRaw,  setTagsRaw]  = useState(task?.tags?.join(", ") ?? "");
   const [dueDate,  setDueDate]  = useState(task?.dueDateRaw ?? "");
   const [assigneeId, setAssigneeId] = useState(task?.assigneeId ?? "");

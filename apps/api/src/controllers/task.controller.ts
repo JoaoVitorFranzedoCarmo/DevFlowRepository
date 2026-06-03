@@ -1,5 +1,11 @@
 import { Request, Response } from "express";
 import { taskService } from "../services/task.service";
+import { WSJFStrategy, EisenhowerStrategy } from "../strategies/prioritization.strategy";
+
+const STRATEGIES: Record<string, () => InstanceType<typeof WSJFStrategy | typeof EisenhowerStrategy>> = {
+  wsjf:        () => new WSJFStrategy(),
+  eisenhower:  () => new EisenhowerStrategy(),
+};
 
 export class TaskController {
   async findAll(req: Request, res: Response) {
@@ -49,8 +55,10 @@ export class TaskController {
     res.json(result);
   }
 
-  async getPrioritizedTasks(_req: Request, res: Response) {
-    const tasks = await taskService.getPrioritizedTasks();
+  async getPrioritizedTasks(req: Request, res: Response) {
+    const key = ((req.query.strategy as string) ?? "wsjf").toLowerCase();
+    const factory = STRATEGIES[key] ?? STRATEGIES.wsjf;
+    const tasks = await taskService.getPrioritizedTasks(factory());
     res.json(tasks);
   }
 

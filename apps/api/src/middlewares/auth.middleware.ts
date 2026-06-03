@@ -2,11 +2,10 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { UnauthorizedError } from "../utils/errors";
+import { JwtPayload } from "@devflow/types";
 
-export interface JwtPayload {
-  userId: number;
-  role: string;
-}
+// Re-exporta para que importadores existentes (auth.service.ts) não precisem mudar
+export type { JwtPayload };
 
 declare global {
   namespace Express {
